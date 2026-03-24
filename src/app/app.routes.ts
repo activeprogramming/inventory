@@ -13,6 +13,12 @@ import { Correo } from './correo/correo';
 import { Registro } from './registro/registro';
 import { AuthGuard } from '../services/auth.guard';  
 import { LoginGuard } from '../services/login.guard';
+import { Tiponodo } from './tiponodo/tiponodo';
+import { Nodos } from './nodos/nodos';
+import { Incidencias } from './incidencias/incidencias';
+import { Ordenes } from './ordenes/ordenes';
+import { Tareas } from './tareas/tareas';
+import { Mantenimientos } from './mantenimientos/mantenimientos';
 
 export const routes: Routes = [
   // Rutas públicas (sin protección)
@@ -68,6 +74,51 @@ export const routes: Routes = [
     component: Roles,
     canActivate: [AuthGuard]
   },
+  { 
+    path: 'tiponodo', 
+    component: Tiponodo,
+    canActivate: [AuthGuard]
+  },
+  { 
+    path: 'nodos', 
+    component: Nodos,
+    canActivate: [AuthGuard]
+  },
+  { 
+    path: 'incidencias', 
+    component: Incidencias,
+    canActivate: [AuthGuard]
+  },
+  { 
+    path: 'ordenes', 
+    component: Ordenes,
+    canActivate: [AuthGuard]
+  },
+  { 
+    path: 'tareas', 
+    component: Tareas,
+    canActivate: [AuthGuard]
+  },
+  { 
+    path: 'mantenimientos', 
+    component: Mantenimientos,
+    canActivate: [AuthGuard]
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ,
   { 
     path: 'correo', 
     component: Correo,

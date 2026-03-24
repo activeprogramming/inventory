@@ -1,0 +1,377 @@
+<div class="trazabilidad-container">
+  <!-- Header -->
+  <header class="trazabilidad-header">
+    <div class="header-content">
+      <h1 class="titulo-principal">
+        <span class="icono-trazabilidad">🏷️</span>
+        Gestión de Tipos de Nodo
+      </h1>
+      <p class="subtitulo">
+        Administra las categorías de nodos: ubicaciones, equipos, componentes, etc.
+      </p>
+    </div>
+    
+    <div class="header-actions">
+      <button *ngIf="tienePrivilegio('tiponodo.Editar')" class="btn btn-primary" (click)="abrirModalNuevo()">
+        <span class="icono-btn">➕</span>
+        Nuevo Tipo
+      </button>
+    </div>
+  </header>
+
+  <!-- Filtros -->
+  <section class="filtros-section">
+    <div class="filtros-header">
+      <h2 class="titulo-seccion">
+        <span class="icono-filtros">🔍</span>
+        Filtros de Búsqueda
+      </h2>
+    </div>
+
+    <div class="filtros-grid">
+      <div class="filtro-item">
+        <label for="search">Búsqueda General</label>
+        <input type="text" id="search" [(ngModel)]="filtros.search" 
+               placeholder="Buscar por nombre, descripción..."
+               (keyup.enter)="aplicarFiltros()">
+      </div>
+
+      <div class="filtro-item">
+        <label for="estado">Estado</label>
+        <select id="estado" [(ngModel)]="filtros.estado">
+          <option value="todos">Todos</option>
+          <option value="activo">Activos</option>
+          <option value="inactivo">Inactivos</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filtros-actions">
+      <button class="btn btn-apply" (click)="aplicarFiltros()" [disabled]="loading">
+        {{ loading ? 'Cargando...' : 'Aplicar Filtros' }}
+      </button>
+      <button class="btn btn-clear" (click)="limpiarFiltros()">
+        Limpiar Filtros
+      </button>
+    </div>
+  </section>
+
+  <!-- Estadísticas -->
+  <section class="estadisticas-section">
+    <div class="estadistica-card">
+      <div class="estadistica-icon">📊</div>
+      <div class="estadistica-content">
+        <div class="estadistica-titulo">Total Tipos</div>
+        <div class="estadistica-valor">{{ totalRegistros }}</div>
+      </div>
+    </div>
+
+    <div class="estadistica-card">
+      <div class="estadistica-icon">📈</div>
+      <div class="estadistica-content">
+        <div class="estadistica-titulo">Mostrando</div>
+        <div class="estadistica-valor">{{ registros.length }}</div>
+      </div>
+    </div>
+
+    <div class="estadistica-card">
+      <div class="estadistica-icon">📅</div>
+      <div class="estadistica-content">
+        <div class="estadistica-titulo">Página</div>
+        <div class="estadistica-valor">{{ filtros.page }} de {{ totalPaginas }}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tabla de registros -->
+  <section class="tabla-section">
+    <div class="tabla-header">
+      <h2 class="titulo-seccion">
+        <span class="icono-tabla">📋</span>
+        Tipos de Nodo
+      </h2>
+      <div class="tabla-info">
+        <span *ngIf="loading" class="loading-text">Cargando datos...</span>
+        <span *ngIf="!loading">Mostrando {{ registros.length }} de {{ totalRegistros }} registros</span>
+      </div>
+    </div>
+
+    <div class="tabla-container">
+      <table class="trazabilidad-tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th>Creación</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let registro of registros" class="registro-fila">
+            <td class="col-id">{{ registro.id }}</td>
+            <td class="col-producto">
+              <div class="producto-nombre">{{ registro.nombre }}</div>
+            </td>
+            <td class="col-producto">
+              <div class="producto-desc">{{ registro.detalles || '—' }}</div>
+            </td>
+            <td class="col-tipo">
+              <span class="badge-tipo" [class]="registro.es_equipo ? 'color-equipo' : 'color-ubicacion'">
+                {{ getEsEquipoTexto(registro.es_equipo) }}
+              </span>
+            </td>
+            <td class="col-estado">
+              <span class="badge-estado" [class]="getEstadoBadgeClass(registro.estado)">
+                {{ getEstadoTexto(registro.estado) }}
+              </span>
+            </td>
+            <td class="col-fecha">{{ formatearFecha(registro.created_at) }}</td>
+            <td class="col-acciones">
+              <button class="btn-accion btn-ver" (click)="abrirModalDetalle(registro)" title="Ver detalles">
+                👁️
+              </button>
+              <button *ngIf="tienePrivilegio('tiponodo.Editar')" class="btn-accion btn-editar" 
+                      (click)="abrirModalEditar(registro)" title="Editar">
+                ✏️
+              </button>
+              <button *ngIf="tienePrivilegio('tiponodo.Editar')" class="btn-accion btn-eliminar" 
+                      (click)="abrirModalEliminar(registro)" title="Eliminar">
+                🗑️
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Mensaje sin datos -->
+      <div *ngIf="!loading && registros.length === 0" class="sin-datos">
+        <div class="sin-datos-icon">📭</div>
+        <div class="sin-datos-texto">No se encontraron tipos de nodo con los filtros aplicados</div>
+      </div>
+    </div>
+
+    <!-- Paginación -->
+    <div class="paginacion" *ngIf="totalPaginas > 1">
+      <button class="btn-pagina" (click)="paginaAnterior()" [disabled]="filtros.page === 1">
+        ← Anterior
+      </button>
+      
+      <div class="paginas-numeros">
+        <span *ngIf="filtros.page > 3" 
+              (click)="irAPagina(1)"
+              class="numero-pagina">
+          1
+        </span>
+        <span *ngIf="filtros.page > 4" class="puntos-suspensivos">
+          ...
+        </span>
+        <span *ngFor="let pagina of generarRangoPaginas()" 
+              (click)="irAPagina(pagina)"
+              [class.pagina-activa]="pagina === filtros.page"
+              class="numero-pagina">
+          {{ pagina }}
+        </span>
+        <span *ngIf="filtros.page < totalPaginas - 3" class="puntos-suspensivos">
+          ...
+        </span>
+        <span *ngIf="filtros.page < totalPaginas - 2" 
+              (click)="irAPagina(totalPaginas)"
+              class="numero-pagina">
+          {{ totalPaginas }}
+        </span>
+      </div>
+      
+      <button class="btn-pagina" (click)="paginaSiguiente()" [disabled]="filtros.page === totalPaginas">
+        Siguiente →
+      </button>
+    </div>
+  </section>
+</div>
+
+<!-- Modal Nuevo Registro -->
+<div class="modal-overlay" *ngIf="mostrarModalNuevo" (click)="cerrarModalNuevo()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">➕ Nuevo Tipo de Nodo</h3>
+      <button class="modal-cerrar" (click)="cerrarModalNuevo()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <form class="formulario-nuevo" (ngSubmit)="crearNuevoRegistro()">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="nuevoNombre">Nombre *</label>
+            <input type="text" id="nuevoNombre" [(ngModel)]="nuevoRegistro.nombre" 
+                   name="nombre" placeholder="Ej: Ciudad, Router, Fuente de poder" required>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="nuevoDetalles">Descripción</label>
+            <textarea id="nuevoDetalles" [(ngModel)]="nuevoRegistro.detalles" 
+                      name="detalles" rows="3" placeholder="Descripción del tipo de nodo"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="nuevoEsEquipo">Categoría</label>
+            <select id="nuevoEsEquipo" [(ngModel)]="nuevoRegistro.es_equipo" name="es_equipo">
+              <option [value]="true">Equipo / Componente</option>
+              <option [value]="false">Ubicación (Ciudad, Edificio, Sala, etc.)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="nuevoEstado">Estado</label>
+            <select id="nuevoEstado" [(ngModel)]="nuevoRegistro.estado" name="estado">
+              <option [value]="true">Activo</option>
+              <option [value]="false">Inactivo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalNuevo()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Crear Tipo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalles -->
+<div class="modal-overlay" *ngIf="mostrarModalDetalle && registroSeleccionado" (click)="cerrarModalDetalle()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">👁️ Detalles del Tipo de Nodo #{{ registroSeleccionado.id }}</h3>
+      <button class="modal-cerrar" (click)="cerrarModalDetalle()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="detalles-grid">
+        <div class="detalle-item">
+          <span class="detalle-label">ID:</span>
+          <span class="detalle-valor">{{ registroSeleccionado.id }}</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label">Nombre:</span>
+          <span class="detalle-valor">{{ registroSeleccionado.nombre }}</span>
+        </div>
+        <div class="detalle-item full-width">
+          <span class="detalle-label">Descripción:</span>
+          <span class="detalle-valor">{{ registroSeleccionado.detalles || '—' }}</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label">Categoría:</span>
+          <span class="detalle-valor">{{ getEsEquipoTexto(registroSeleccionado.es_equipo) }}</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label">Estado:</span>
+          <span class="detalle-valor">{{ getEstadoTexto(registroSeleccionado.estado) }}</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label">Creado:</span>
+          <span class="detalle-valor">{{ formatearFecha(registroSeleccionado.created_at) }}</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label">Actualizado:</span>
+          <span class="detalle-valor">{{ formatearFecha(registroSeleccionado.updated_at) }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="cerrarModalDetalle()">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar -->
+<div class="modal-overlay" *ngIf="mostrarModalEditar && registroSeleccionado" (click)="cerrarModalEditar()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">✏️ Editar Tipo de Nodo #{{ registroSeleccionado.id }}</h3>
+      <button class="modal-cerrar" (click)="cerrarModalEditar()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <form class="formulario-editar" (ngSubmit)="actualizarRegistro()">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="editarNombre">Nombre *</label>
+            <input type="text" id="editarNombre" [(ngModel)]="editarRegistro.nombre" 
+                   name="nombre" required>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="editarDetalles">Descripción</label>
+            <textarea id="editarDetalles" [(ngModel)]="editarRegistro.detalles" 
+                      name="detalles" rows="3"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="editarEsEquipo">Categoría</label>
+            <select id="editarEsEquipo" [(ngModel)]="editarRegistro.es_equipo" name="es_equipo">
+              <option [value]="true">Equipo / Componente</option>
+              <option [value]="false">Ubicación</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editarEstado">Estado</label>
+            <select id="editarEstado" [(ngModel)]="editarRegistro.estado" name="estado">
+              <option [value]="true">Activo</option>
+              <option [value]="false">Inactivo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalEditar()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Actualizar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Eliminar -->
+<div class="modal-overlay" *ngIf="mostrarModalEliminar && registroSeleccionado" (click)="cerrarModalEliminar()">
+  <div class="modal-container modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">⚠️ Confirmar Eliminación</h3>
+      <button class="modal-cerrar" (click)="cerrarModalEliminar()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="confirmacion-contenido">
+        <div class="confirmacion-icono">🗑️</div>
+        <div class="confirmacion-mensaje">
+          ¿Estás seguro de que deseas eliminar el tipo de nodo "{{ registroSeleccionado.nombre }}"?
+          <br>
+          <strong>Esta acción no se puede deshacer.</strong>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalEliminar()">
+        Cancelar
+      </button>
+      <button class="btn btn-danger" (click)="eliminarRegistroConfirmado()">
+        Sí, Eliminar
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,254 @@
+<div class="nodos-container">
+  <!-- Header -->
+  <header class="nodos-header">
+    <div class="header-content">
+      <h1 class="titulo-principal">
+        <span class="icono">🌳</span>
+        Configuración de Árbol de Nodos
+      </h1>
+      <p class="subtitulo">Administre la jerarquía de ubicaciones, equipos y
+        componentes</p>
+    </div>
+  </header>
+
+  <!-- Tabla de nodos raíz -->
+  <section class="tabla-section">
+    <div class="tabla-header">
+      <h2 class="titulo-seccion"> </h2>
+      <div class="tabla-actions">
+        <button class="btn btn-primary" (click)="crearNodoRaiz()">
+          <span class="icono-btn">➕</span> Nuevo Nodo Principal
+        </button>
+      </div>
+    </div>
+
+    <div class="tabla-container">
+      <table class="nodos-tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th>Creado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let nodo of nodosRaiz" class="registro-fila">
+            <td class="col-id">{{ nodo.id }}</td>
+            <td class="col-nombre">{{ nodo.nombre }}</td>
+            <td class="col-tipo">
+  <span class="badge-tipo" [class]="nodo.es_equipo ? 'color-equipo' : 'color-ubicacion'">
+    {{ nodo.tipo_nombre || getTipoNombre(nodo.tipo_id) }}
+  </span>
+</td>
+            <td class="col-descripcion">{{ nodo.descripcion || '—' }}</td>
+            <td class="col-estado">
+              <span class="badge-estado"
+                [class]="nodo.estado_activo ? 'estado-activo' : 'estado-inactivo'">
+                {{ nodo.estado_activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td class="col-fecha">{{ nodo.created_at | date:'dd/MM/yyyy' }}</td>
+            <td class="col-acciones">
+              <button class="btn-icon" (click)="editarArbolRaiz(nodo)"
+                title="Editar árbol">✏️</button>
+              <button class="btn-icon btn-eliminar"
+                (click)="eliminarNodoRaiz(nodo)" title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && nodosRaiz.length === 0">
+            <td colspan="7" class="sin-datos">
+              <div class="sin-datos-icon">📭</div>
+              <div>No hay nodos raíz configurados.</div>
+              <button class="btn btn-sm btn-outline"
+                (click)="crearNodoRaiz()">Agregar ahora</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Modal vertical: Editar árbol de un nodo raíz -->
+  <div class="modal-overlay" *ngIf="mostrarModalArbol"
+    (click)="cerrarModalArbol()">
+    <div class="modal-container modal-vertical"
+      (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-titulo">🌳 Editar Árbol: {{ nodoRaizActual?.nombre
+          }}</h3>
+        <button class="modal-cerrar" (click)="cerrarModalArbol()">×</button>
+      </div>
+      <div class="modal-body">
+         
+        <div class="arbol-editor">
+          <!-- Plantilla recursiva -->
+          <ng-template #nodoRecursivo let-nodo let-parent="parent">
+  <!-- aquí 'nodo' toma el valor de $implicit, 'parent' toma el valor de 'parent' -->
+  <ng-container *ngIf="nodo">
+              <div class="nodo-item" >
+                <div class="nodo-header" [class.nodo-equipo]="esEquipo(nodo)" [class.nodo-ubicacion]="!esEquipo(nodo)">
+                  <div class="nodo-icon"
+                    (click)="nodo.colapsado = !nodo.colapsado">
+                    <span *ngIf="nodo.hijos?.length" class="expand-icon">{{
+                      nodo.colapsado ? '▶' : '▼' }}</span>
+                    <span *ngIf="!nodo.hijos?.length" class="leaf-icon">•</span>
+                  </div>
+                  <div class="nodo-contenido">
+                    <div class="nodo-nombre">
+                      <strong>{{ nodo.nombre }}</strong>
+                      <span class="nodo-tipo">({{ getTipoNombre(nodo.tipo_id)
+                        }})</span>
+                      <span class="nodo-estado"
+                        [class.activo]="nodo.estado_activo"
+                        [class.inactivo]="!nodo.estado_activo">
+                        {{ nodo.estado_activo ? 'Activo' : 'Inactivo' }}
+                      </span>
+                    </div>
+                    <div class="nodo-descripcion" *ngIf="nodo.descripcion">{{
+                      nodo.descripcion }}</div>
+                    <div class="campos-extra"
+                      *ngIf="esEquipo(nodo) && nodo.campos_extra">
+                      <div *ngIf="nodo.campos_extra.part_number"
+                        class="extra-linea">
+                        <span class="extra-label">Part#:</span> {{
+                        nodo.campos_extra.part_number }}
+                      </div>
+                      <div *ngIf="nodo.campos_extra.serial_number"
+                        class="extra-linea">
+                        <span class="extra-label">Serial:</span> {{
+                        nodo.campos_extra.serial_number }}
+                      </div>
+                      <div *ngIf="nodo.campos_extra.criticidad"
+                        class="extra-linea">
+                        <span class="extra-label">Criticidad:</span> {{
+                        nodo.campos_extra.criticidad }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="nodo-acciones">
+                    <button class="btn-icon"
+                      (click)="abrirFormularioNodo(parent, nodo)"
+                      title="Editar">✏️</button>
+                    <button class="btn-icon" (click)="abrirFormularioNodo(nodo)"
+                      title="Agregar hijo">➕</button>
+                    <button class="btn-icon btn-eliminar"
+                      (click)="eliminarNodoArbol(nodo, parent)"
+                      title="Eliminar">🗑️</button>
+                  </div>
+                </div>
+                <div class="nodo-hijos"
+                  *ngIf="nodo.hijos && nodo.hijos.length && !nodo.colapsado">
+                  <div *ngFor="let hijo of nodo.hijos" class="nodo-hijo">
+                    <ng-container *ngIf="hijo">
+                      <ng-container
+                        *ngTemplateOutlet="nodoRecursivo; context: { $implicit: hijo, parent: nodo }"></ng-container>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+          </ng-template>
+          <ng-container *ngIf="arbolActual">
+            <ng-container
+              *ngTemplateOutlet="nodoRecursivo; context: { $implicit: arbolActual, parent: null }"></ng-container>
+          </ng-container>
+          <div *ngIf="!arbolActual" class="cargando">Cargando árbol...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary"
+          (click)="cerrarModalArbol()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de formulario de nodo (crear/editar) -->
+  <div class="modal-overlay" *ngIf="mostrarModalForm"
+    (click)="cerrarFormulario()">
+    <div class="modal-container modal-form" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-titulo">
+          {{ modoForm === 'crear' ? '➕ Nuevo Nodo' : '✏️ Editar Nodo' }}
+        </h3>
+        <button class="modal-cerrar" (click)="cerrarFormulario()">×</button>
+      </div>
+      <div class="modal-body">
+        <form class="formulario-nodo">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input type="text" [(ngModel)]="formData.nombre" name="nombre"
+              required>
+          </div>
+          <div class="form-group">
+            <label>Tipo</label>
+            <div>Tipos disponibles: {{ tiposNodo.length }}</div>
+            <select [(ngModel)]="formData.tipo_id" name="tipo_id" (change)="onTipoCambio()">
+  <option *ngFor="let tipo of tiposNodo" [value]="tipo.id">{{ tipo.nombre }}</option>
+</select>
+<div *ngIf="tiposNodo.length === 0" class="loading-tipos">No hay tipos disponibles</div>
+            <div *ngIf="!tiposNodo || !tiposNodo.length"
+              class="loading-tipos">Cargando tipos...</div>
+          </div>
+          <div class="form-group">
+            <label>Descripción</label>
+            <textarea [(ngModel)]="formData.descripcion" name="descripcion"
+              rows="2"></textarea>
+          </div>
+          <div class="form-group checkbox">
+            <label>
+              <input type="checkbox" [(ngModel)]="formData.estado_activo"
+                name="estado_activo"> Activo
+            </label>
+          </div>
+
+          <!-- Campos extra (se muestran solo si el tipo seleccionado es equipo/componente) -->
+          <div *ngIf="esEquipoSeleccionado()" class="campos-extra-form">
+            <h4>Campos técnicos (equipo/componente)</h4>
+            <div class="form-row">
+              <input type="text" [(ngModel)]="formData.part_number"
+                placeholder="Part Number" name="part_number">
+              <input type="text" [(ngModel)]="formData.serial_number"
+                placeholder="Serial Number" name="serial_number">
+            </div>
+            <div class="form-row">
+              <input type="text" [(ngModel)]="formData.codigo"
+                placeholder="Código interno" name="codigo">
+              <select [(ngModel)]="formData.criticidad" name="criticidad">
+                <option value="baja">Baja</option>
+                <option value="media">Media</option>
+                <option value="alta">Alta</option>
+                <option value="critica">Crítica</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <input type="number" [(ngModel)]="formData.cantidad_actual"
+                placeholder="Cantidad" name="cantidad_actual">
+              <input type="text" [(ngModel)]="formData.estanteria"
+                placeholder="Estantería" name="estanteria">
+            </div>
+            <div class="form-row">
+              <input type="number" step="0.01" [(ngModel)]="formData.precio"
+                placeholder="Precio" name="precio">
+              <input type="date" [(ngModel)]="formData.fecha_instalacion"
+                placeholder="Fecha instalación" name="fecha_instalacion">
+            </div>
+            <div class="form-group">
+              <textarea [(ngModel)]="formData.observaciones"
+                placeholder="Observaciones" rows="2"
+                name="observaciones"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary"
+          (click)="cerrarFormulario()">Cancelar</button>
+        <button class="btn btn-primary" (click)="guardarNodo()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>

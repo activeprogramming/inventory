@@ -1,0 +1,763 @@
+/* ========== ESTILOS GENERALES ========== */
+.nodos-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f8fafc;
+  color: #333;
+}
+
+/* Header */
+.nodos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.header-content {
+  flex: 1;
+}
+
+.titulo-principal {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icono {
+  font-size: 32px;
+}
+
+.subtitulo {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Botones */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+.btn-secondary {
+  background: #e2e8f0;
+  color: #475569;
+}
+.btn-secondary:hover {
+  background: #cbd5e1;
+}
+.btn-outline {
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+.btn-outline:hover {
+  background: #f1f5f9;
+}
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 16px;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+.btn-icon:hover {
+  background: #f1f5f9;
+}
+.btn-eliminar:hover {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Tabla */
+.tabla-section {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.tabla-header {
+  padding: 24px 24px 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px !important;
+}
+.titulo-seccion {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+.tabla-info {
+  font-size: 14px;
+  color: #64748b;
+}
+.tabla-container {
+  overflow-x: auto;
+}
+.nodos-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+.nodos-tabla th {
+  background: #104861;
+  padding: 16px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: uppercase;
+  border-bottom: 2px solid #e2e8f0;
+}
+.nodos-tabla td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+.registro-fila:hover {
+  background: #f8fafc;
+}
+.col-id { font-family: monospace; width: 80px; }
+.col-nombre { min-width: 150px; }
+.col-tipo { width: 120px; }
+.col-descripcion { min-width: 200px; }
+.col-estado { width: 100px; }
+.col-fecha { width: 120px; }
+
+.badge-tipo, .badge-estado {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.color-equipo { background: #dbeafe; color: #1e40af; }
+.color-ubicacion { background: #d1fae5; color: #065f46; }
+.estado-activo { background: #d1fae5; color: #065f46; }
+.estado-inactivo { background: #fee2e2; color: #991b1b; }
+
+.sin-datos {
+  text-align: center;
+  padding: 40px;
+  color: #94a3b8;
+}
+.sin-datos-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+/* Modal vertical */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+.modal-container {
+  background: white;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.modal-vertical {
+  max-width: 900px;
+  width: 90%;
+}
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0a2540;
+  color: white;
+}
+.modal-titulo {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+.modal-cerrar {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: white;
+}
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Editor de árbol */
+.editor-info {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.arbol-editor {
+  padding-left: 8px;
+}
+
+/* Nodo individual */
+.nodo-item {
+  margin: 8px 0;
+  border-left: 2px solid #e2e8f0;
+  padding-left: 16px;
+}
+.nodo-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+.nodo-icon {
+  cursor: pointer;
+  width: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #64748b;
+}
+.expand-icon {
+  font-size: 12px;
+}
+.leaf-icon {
+  font-size: 14px;
+  color: #94a3b8;
+}
+.nodo-contenido {
+  flex: 1;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+.nodo-nombre {
+  font-weight: 600;
+  color: #1e293b;
+}
+.nodo-tipo {
+  font-size: 12px;
+  font-weight: normal;
+  color: #64748b;
+  margin-left: 8px;
+}
+.nodo-estado {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+.nodo-estado.activo {
+  background: #d1fae5;
+  color: #065f46;
+}
+.nodo-estado.inactivo {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.nodo-descripcion {
+  font-size: 13px;
+  color: #475569;
+  margin-top: 4px;
+}
+.nodo-edicion {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  background: #fef9e3;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #fde047;
+}
+.form-control-sm {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.checkbox-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.nodo-acciones {
+  display: flex;
+  gap: 4px;
+}
+.nodo-hijos {
+  margin-left: 24px;
+  border-left: 1px dashed #cbd5e1;
+}
+.nodo-hijo {
+  margin-left: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nodos-container { padding: 12px; }
+  .nodos-header { flex-direction: column; gap: 16px; }
+  .header-actions { width: 100%; }
+  .btn { width: 100%; }
+  .modal-vertical { width: 95%; }
+  .nodo-header { flex-direction: column; align-items: stretch; }
+  .nodo-acciones { justify-content: flex-end; }
+  .nodo-edicion { flex-direction: column; align-items: stretch; }
+}/* Agregar al final del CSS existente */
+
+/* Campos extra en vista */
+.campos-extra {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #4b5563;
+  background: #f1f5f9;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.extra-linea {
+  background: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.extra-label {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+/* Formulario de campos extra */
+.campos-extra-form {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+.campos-extra-form h5 {
+  font-size: 13px;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+  color: #1f2937;
+}
+.form-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.form-control-sm {
+  flex: 1;
+  min-width: 120px;
+}/* Tabla de acciones */
+.tabla-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Botones de acción en tabla */
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 16px;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.btn-icon:hover {
+  background: #f1f5f9;
+}
+.btn-eliminar:hover {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Campos extra en vista */
+.campos-extra {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #4b5563;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.extra-linea {
+  background: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.extra-label {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+/* Formulario de nodo */
+.formulario-nodo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+.form-group input, .form-group select, .form-group textarea {
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.form-group.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.form-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.form-row > * {
+  flex: 1;
+}
+.campos-extra-form h4 {
+  margin: 12px 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.modal-form {
+  max-width: 600px;
+  width: 90%;
+}
+
+/* Mejoras para el árbol */
+.nodo-item {
+  margin: 8px 0;
+  border-left: 2px solid #e2e8f0;
+  padding-left: 12px;
+}
+.nodo-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.nodo-icon {
+  cursor: pointer;
+  width: 20px;
+  text-align: center;
+  margin-top: 2px;
+}
+.nodo-contenido {
+  flex: 1;
+}
+.nodo-nombre {
+  font-weight: 600;
+}
+.nodo-tipo {
+  font-size: 12px;
+  font-weight: normal;
+  color: #64748b;
+  margin-left: 6px;
+}
+.nodo-estado {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+.nodo-estado.activo {
+  background: #d1fae5;
+  color: #065f46;
+}
+.nodo-estado.inactivo {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.nodo-descripcion {
+  font-size: 13px;
+  color: #475569;
+  margin-top: 4px;
+}
+.nodo-acciones {
+  display: flex;
+  gap: 4px;
+}
+.nodo-hijos {
+  margin-left: 24px;
+  border-left: 1px dashed #cbd5e1;
+}
+.nodo-hijo {
+  margin-left: 8px;
+}
+.cargando {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+}/* Asegurar que los selects dentro del formulario tengan ancho completo */
+.formulario-nodo select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.formulario-nodo select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.formulario-nodo select:disabled {
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+}/* ============================================
+   MEJORAS VISUALES PARA CAMPOS EXTRA
+   ============================================ */
+
+.campos-extra-form {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.campos-extra-form h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.campos-extra-form h4::before {
+  content: "🔧";
+  font-size: 14px;
+}
+
+.campos-extra-form .form-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.campos-extra-form .form-row > * {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Estilos para todos los inputs, selects y textareas dentro de campos extra */
+.campos-extra-form input,
+.campos-extra-form select,
+.campos-extra-form textarea {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: white;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.campos-extra-form input:focus,
+.campos-extra-form select:focus,
+.campos-extra-form textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background-color: #ffffff;
+}
+
+.campos-extra-form input:hover,
+.campos-extra-form select:hover,
+.campos-extra-form textarea:hover {
+  border-color: #94a3b8;
+}
+
+/* Placeholder más elegante */
+.campos-extra-form input::placeholder,
+.campos-extra-form textarea::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* Ajuste para selects (la flecha nativa se mantiene) */
+.campos-extra-form select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  padding-right: 28px;
+}
+
+/* Textarea ajuste de altura */
+.campos-extra-form textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+/* Para inputs tipo number */
+.campos-extra-form input[type="number"] {
+  -moz-appearance: textfield;
+}
+.campos-extra-form input[type="number"]::-webkit-inner-spin-button,
+.campos-extra-form input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.5;
+}
+
+/* Espaciado entre grupos de campos */
+.campos-extra-form .form-group {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+/* Pequeño efecto en el contenedor al enfocar algún input */
+.campos-extra-form:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+/* Responsive: ajusta columnas en pantallas pequeñas */
+@media (max-width: 640px) {
+  .campos-extra-form .form-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .campos-extra-form .form-row > * {
+    width: 100%;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .tabla-container {
+    position: relative;
+    width: 100% !important;
+    max-width: 80vh !important;
+  }
+}
+
+@media (max-width: 668px) {
+  .tabla-container {
+    position: relative;
+    width: 100% !important;
+    max-width: 60vh !important;
+  }
+}
+@media (max-width: 468px) {
+  .tabla-container {
+    position: relative;
+    width: 100% !important;
+    max-width: 40vh !important;
+  }
+}
+
+
+
+
+/* Equipo/componente */
+.nodo-header.nodo-equipo {
+  border-left: 4px solid #fbbf24;
+  background-color: rgba(251, 191, 36, 0.05);
+}
+.nodo-header.nodo-equipo:hover {
+  background-color: rgba(251, 191, 36, 0.1);
+}
+
+/* Ubicación */
+.nodo-header.nodo-ubicacion {
+  border-left: 4px solid #7dd3fc;
+  background-color: rgba(125, 211, 252, 0.05);
+}
+.nodo-header.nodo-ubicacion:hover {
+  background-color: rgba(125, 211, 252, 0.1);
+}

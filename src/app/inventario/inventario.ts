@@ -3213,4 +3213,5 @@ productoParaAlerta = {
   textoConfirmacionValido(): boolean {
     return this.confirmacionEliminacion.textoConfirmacion?.toUpperCase() === 'ELIMINAR';
   }
+  
 }
