@@ -281,6 +281,13 @@
     <div *ngIf="nodoDetalle?.campos_extra?.precio">Precio: {{ nodoDetalle?.campos_extra?.precio | currency }}</div>
     <div *ngIf="nodoDetalle?.campos_extra?.fecha_instalacion">Fecha instalación: {{ nodoDetalle?.campos_extra?.fecha_instalacion | date:'dd/MM/yyyy' }}</div>
     <div *ngIf="nodoDetalle?.campos_extra?.estado">Estado: {{ nodoDetalle?.campos_extra?.estado }}</div>
+  <!-- Dentro del modal-body, después de los campos extra del nodo -->
+<div *ngIf="incidenciaSeleccionada" class="detalle-item full-width">
+  <span class="detalle-label">Ubicación completa:</span>
+  <div class="info-tecnica">
+    {{ obtenerRutaNodox(incidenciaSeleccionada.nodo_id) }}
+  </div>
+</div>
   </div>
 </div>
         <div class="detalle-item"><span class="detalle-label">Fecha

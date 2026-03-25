@@ -171,6 +171,25 @@ nodoDetalle: Nodo | null = null;
     this.cargarIncidencias();
   }
 
+  // Dentro de la clase Incidencias, agrega este método:
+obtenerRutaNodox(nodoId: number): string {
+  const buscarRuta = (nodos: Nodo[], camino: string[]): string | null => {
+    for (const n of nodos) {
+      const nuevoCamino = [...camino, n.nombre];
+      if (n.id === nodoId) {
+        return nuevoCamino.join(' / ');
+      }
+      if (n.hijos) {
+        const resultado = buscarRuta(n.hijos, nuevoCamino);
+        if (resultado) return resultado;
+      }
+    }
+    return null;
+  };
+  const ruta = buscarRuta(this.arbolEquipos, []);
+  return ruta || 'Ubicación no encontrada';
+}
+
   limpiarFiltros() {
     this.filtros = {
       search: '',
@@ -239,10 +258,7 @@ nodoDetalle: Nodo | null = null;
       this.nuevaIncidencia.nodo_id = nodo.id;
       this.nuevaIncidencia.nodo_nombre = nodo.nombre;
 
-      // Obtener la ruta completa y asignarla al campo detalles
-      const ruta = this.obtenerRutaNodo(nodo, this.arbolEquipos);
-      this.nuevaIncidencia.detalles = `Ubicación: ${ruta}`;
-
+       
       this.cerrarSelectorNodo();
     } else {
       alert('Solo puede seleccionar equipos o componentes');

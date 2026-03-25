@@ -303,17 +303,7 @@
   border-collapse: collapse;
 }
 
-.trazabilidad-tabla th {
-  background: #104861;
-  padding: 16px 12px;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  color: #ffffff;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 2px solid #e2e8f0;
-}
+
 
 .trazabilidad-tabla td {
   padding: 16px 12px;

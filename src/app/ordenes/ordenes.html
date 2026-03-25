@@ -1,1 +1,365 @@
-<p>ordenes works!</p>
+<div class="ordenes-container">
+  <!-- Header -->
+  <header class="ordenes-header">
+    <div class="header-content">
+      <h1 class="titulo-principal">
+        <span class="icono">📋</span>
+        Gestión de Órdenes de Trabajo
+      </h1>
+      <p class="subtitulo">Administre las órdenes correctivas y preventivas</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="abrirModalCrear()">
+        <span class="icono-btn">➕</span> Nueva Orden Preventiva
+      </button>
+    </div>
+  </header>
+
+  <!-- Estadísticas -->
+  <div class="estadisticas" *ngIf="!loading">
+    <div class="estadistica-card">
+      <div class="estadistica-valor">{{ totalRegistros }}</div>
+      <div class="estadistica-label">Total</div>
+    </div>
+    <div class="estadistica-card">
+      <div class="estadistica-valor">{{ totalPendientes }}</div>
+      <div class="estadistica-label">Pendientes</div>
+    </div>
+    <div class="estadistica-card">
+      <div class="estadistica-valor">{{ totalEnProceso }}</div>
+      <div class="estadistica-label">En proceso</div>
+    </div>
+    <div class="estadistica-card">
+      <div class="estadistica-valor">{{ totalCompletadas }}</div>
+      <div class="estadistica-label">Completadas</div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <section class="filtros-section">
+    <div class="filtros-header">
+      <h2 class="titulo-seccion">🔍 Filtros de búsqueda</h2>
+    </div>
+    <div class="filtros-grid">
+      <div class="filtro-item">
+        <label>Búsqueda</label>
+        <input type="text" [(ngModel)]="filtros.search" placeholder="Buscar por descripción, observaciones..." (keyup.enter)="aplicarFiltros()">
+      </div>
+      <div class="filtro-item">
+        <label>Estado</label>
+        <select [(ngModel)]="filtros.estado">
+          <option value="">Todos</option>
+          <option *ngFor="let e of estadosDisponibles" [value]="e.value">{{ e.label }}</option>
+        </select>
+      </div>
+      <div class="filtro-item">
+        <label>Tipo</label>
+        <select [(ngModel)]="filtros.tipo">
+          <option value="">Todos</option>
+          <option *ngFor="let t of tiposDisponibles" [value]="t.value">{{ t.label }}</option>
+        </select>
+      </div>
+      <div class="filtro-item">
+        <label>Nodo</label>
+        <select [(ngModel)]="filtros.nodo_id">
+          <option [value]="null">Todos</option>
+          <!-- Opcional: aquí podrías listar nodos para facilitar filtro, pero no es necesario -->
+        </select>
+      </div>
+      <div class="filtro-item">
+        <label>Desde</label>
+        <input type="date" [(ngModel)]="filtros.fecha_desde">
+      </div>
+      <div class="filtro-item">
+        <label>Hasta</label>
+        <input type="date" [(ngModel)]="filtros.fecha_hasta">
+      </div>
+    </div>
+    <div class="filtros-actions">
+      <button class="btn btn-apply" (click)="aplicarFiltros()">Aplicar filtros</button>
+      <button class="btn btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+    </div>
+  </section>
+
+  <!-- Tabla de órdenes -->
+  <section class="tabla-section">
+    <div class="tabla-header">
+      <h2 class="titulo-seccion">📋 Listado de órdenes</h2>
+      <div class="tabla-info">Mostrando {{ ordenes.length }} de {{ totalRegistros }}</div>
+    </div>
+    <div class="tabla-container">
+      <table class="ordenes-tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Código</th>
+            <th>Nodo</th>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th>Fecha generación</th>
+            <th>Estado</th>
+            <th>Técnico</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ord of ordenes" class="registro-fila">
+            <td class="col-id">{{ ord.id }}</td>
+            <td class="col-codigo">{{ ord.id }}</td>
+            <td class="col-nodo">{{ ord.nodo_nombre }} ({{ ord.nodo_tipo }})</td>
+            <td class="col-tipo">
+              <span class="badge-tipo" [class]="getColorTipo(ord.tipo)">
+                {{ ord.tipo | titlecase }}
+              </span>
+            </td>
+            <td class="col-descripcion">{{ (ord.descripcion || '') | slice:0:60 }}{{ (ord.descripcion?.length ?? 0) > 60 ? '...' : '' }}</td>
+            <td class="col-fecha">{{ formatearFecha(ord.fecha_generacion) }}</td>
+            <td class="col-estado">
+              <span class="badge-estado" [class]="getColorEstado(ord.estado)">
+                {{ ord.estado | titlecase }}
+              </span>
+            </td>
+            <td class="col-tecnico">{{ ord.tecnico_asignado || '—' }}</td>
+            <td class="col-acciones">
+  <button class="btn-icon" (click)="abrirModalDetalle(ord)" title="Ver orden">👁️</button>
+  <button class="btn-icon" (click)="abrirModalEditar(ord)" title="Editar">✏️</button>
+  <button *ngIf="ord.tipo === 'correctivo' && ord.incidencia_id" 
+          class="btn-icon" 
+          (click)="verIncidencia(ord)" 
+          title="Ver incidencia asociada">
+    ⚠️
+  </button>
+  <button class="btn-icon btn-eliminar" (click)="abrirModalEliminar(ord)" title="Eliminar">🗑️</button>
+</td>
+          </tr>
+          <tr *ngIf="!loading && ordenes.length === 0">
+            <td colspan="9" class="sin-datos">
+              <div class="sin-datos-icon">📭</div>
+              <div>No hay órdenes de trabajo registradas</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="paginacion" *ngIf="totalPaginas > 1">
+      <button class="btn-pagina" (click)="paginaAnterior()" [disabled]="filtros.page === 1">← Anterior</button>
+      <div class="paginas-numeros">
+        <span *ngFor="let pag of generarRangoPaginas()"
+              (click)="irAPagina(pag)"
+              [class.pagina-activa]="pag === filtros.page"
+              class="numero-pagina">{{ pag }}</span>
+      </div>
+      <button class="btn-pagina" (click)="paginaSiguiente()" [disabled]="filtros.page === totalPaginas">Siguiente →</button>
+    </div>
+  </section>
+</div>
+
+<!-- Modal Crear Orden Preventiva -->
+<div class="modal-overlay" *ngIf="mostrarModalCrear" (click)="cerrarModalCrear()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">➕ Nueva Orden Preventiva</h3>
+      <button class="modal-cerrar" (click)="cerrarModalCrear()">×</button>
+    </div>
+    <div class="modal-body">
+      <form class="formulario">
+        <div class="form-group">
+          <label>Nodo *</label>
+          <div class="selector-nodo">
+            <input type="text" [value]="nuevaOrden.nodo_nombre" placeholder="Seleccione un nodo" readonly>
+            <button type="button" class="btn btn-sm btn-outline" (click)="abrirSelectorNodo()">Seleccionar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripción *</label>
+          <textarea [(ngModel)]="nuevaOrden.descripcion" name="descripcion" rows="2" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Técnico asignado</label>
+          <input type="text" [(ngModel)]="nuevaOrden.tecnico_asignado" name="tecnico_asignado">
+        </div>
+        <div class="form-group">
+          <label>Observaciones</label>
+          <textarea [(ngModel)]="nuevaOrden.observaciones" name="observaciones" rows="2"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalCrear()">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="crearOrden()">Crear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- Modal Detalle Incidencia -->
+<div class="modal-overlay" *ngIf="mostrarModalIncidencia && incidenciaDetalle" (click)="cerrarModalIncidencia()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">📄 Detalle de incidencia #{{ incidenciaDetalle.id }}</h3>
+      <button class="modal-cerrar" (click)="cerrarModalIncidencia()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="detalles-grid">
+        <div class="detalle-item"><span class="detalle-label">Nodo:</span> {{ incidenciaDetalle.nodo_nombre }} ({{ incidenciaDetalle.nodo_tipo }})</div>
+       
+
+       
+       
+        <div class="detalle-item"><span class="detalle-label">Fecha reporte:</span> {{ formatearFecha(incidenciaDetalle.fecha_reporte) }}</div>
+        <div class="detalle-item"><span class="detalle-label">Reportado por:</span> {{ incidenciaDetalle.reportado_por || '—' }}</div>
+        <div class="detalle-item"><span class="detalle-label">Estado:</span> {{ incidenciaDetalle.estado | titlecase }}</div>
+        <div class="detalle-item"><span class="detalle-label">Prioridad:</span> {{ incidenciaDetalle.prioridad | titlecase }}</div>
+        <div class="detalle-item full-width"><span class="detalle-label">Descripción:</span> {{ incidenciaDetalle.descripcion || '—' }}</div>
+        <div class="detalle-item full-width" *ngIf="incidenciaDetalle.detalles"><span class="detalle-label">Detalles:</span> {{ incidenciaDetalle.detalles }}</div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="cerrarModalIncidencia()">Cerrar</button>
+    </div>
+  </div>
+</div>
+<!-- Modal Selección de Nodo (Árbol completo) -->
+<div class="modal-overlay" *ngIf="mostrarSelectorNodo" (click)="cerrarSelectorNodo()">
+  <div class="modal-container modal-arbol" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">🌳 Seleccione un nodo</h3>
+      <button class="modal-cerrar" (click)="cerrarSelectorNodo()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="arbol-selector">
+        <ng-template #nodoRecursivo let-nodo>
+          <div class="nodo-item">
+            <div class="nodo-header">
+              <div class="nodo-icon" (click)="nodo.colapsado = !nodo.colapsado">
+                <span *ngIf="nodo.hijos?.length" class="expand-icon">{{ nodo.colapsado ? '▶' : '▼' }}</span>
+                <span *ngIf="!nodo.hijos?.length" class="leaf-icon">•</span>
+              </div>
+             <div class="nodo-nombre" [class.selectable]="nodo.es_equipo" (click)="seleccionarNodo(nodo)">
+  {{ nodo.nombre }}
+  <span class="nodo-tipo">({{ nodo.tipo_nombre }})</span>
+</div>
+            </div>
+            <div class="nodo-hijos" *ngIf="nodo.hijos?.length && !nodo.colapsado">
+              <div *ngFor="let hijo of nodo.hijos; trackBy: trackByFn" class="nodo-hijo">
+                <ng-container *ngTemplateOutlet="nodoRecursivo; context: { $implicit: hijo }"></ng-container>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+        <div *ngFor="let raiz of arbolNodos; trackBy: trackByFn">
+          <ng-container *ngTemplateOutlet="nodoRecursivo; context: { $implicit: raiz }"></ng-container>
+        </div>
+        <div *ngIf="arbolNodos.length === 0" class="sin-datos">No hay nodos registrados</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarSelectorNodo()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalle Orden -->
+<div class="modal-overlay" *ngIf="mostrarModalDetalle && ordenSeleccionada" (click)="cerrarModalDetalle()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">📄 Detalle de orden #{{ ordenSeleccionada.id }}</h3>
+      <button class="modal-cerrar" (click)="cerrarModalDetalle()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="detalles-grid">
+        <div class="detalle-item"><span class="detalle-label">ID:</span> {{ ordenSeleccionada.id }}</div>
+        <div class="detalle-item"><span class="detalle-label">Tipo:</span> {{ ordenSeleccionada.tipo | titlecase }}</div>
+        <div class="detalle-item"><span class="detalle-label">Estado:</span> {{ ordenSeleccionada.estado | titlecase }}</div>
+        <div class="detalle-item"><span class="detalle-label">Fecha generación:</span> {{ formatearFecha(ordenSeleccionada.fecha_generacion) }}</div>
+        <div class="detalle-item"><span class="detalle-label">Nodo:</span> {{ ordenSeleccionada.nodo_nombre }} ({{ ordenSeleccionada.nodo_tipo }})</div>
+        
+                     <!-- Campos extra del nodo (si existen) -->
+<div class="detalle-item full-width" *ngIf="nodoDetalle?.campos_extra">
+  <span class="detalle-label">Información técnica:</span>
+  <div class="info-tecnica">
+    <div *ngIf="nodoDetalle?.campos_extra?.part_number">Part Number: {{ nodoDetalle?.campos_extra?.part_number }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.serial_number">Serial Number: {{ nodoDetalle?.campos_extra?.serial_number }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.codigo">Código: {{ nodoDetalle?.campos_extra?.codigo }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.criticidad">Criticidad: {{ nodoDetalle?.campos_extra?.criticidad }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.cantidad_actual">Cantidad: {{ nodoDetalle?.campos_extra?.cantidad_actual }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.estanteria">Estantería: {{ nodoDetalle?.campos_extra?.estanteria }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.precio">Precio: {{ nodoDetalle?.campos_extra?.precio | currency }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.fecha_instalacion">Fecha instalación: {{ nodoDetalle?.campos_extra?.fecha_instalacion | date:'dd/MM/yyyy' }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.estado">Estado: {{ nodoDetalle?.campos_extra?.estado }}</div>
+    <!-- Dentro del modal de detalle, después del bloque de campos extra -->
+<div *ngIf="nodoDetalle" class="detalle-item full-width">
+  <span class="detalle-label">Ubicación completa:</span>
+  <div class="info-tecnica">
+    {{ obtenerRutaNodo(nodoDetalle.id) }}
+  </div>
+</div>
+  </div>
+</div>
+        
+        <div class="detalle-item" *ngIf="ordenSeleccionada.incidencia_id"><span class="detalle-label">Incidencia asociada:</span> #{{ ordenSeleccionada.incidencia_id }} - {{ ordenSeleccionada.incidencia_descripcion }}</div>
+        <div class="detalle-item full-width"><span class="detalle-label">Descripción:</span> {{ ordenSeleccionada.descripcion || '—' }}</div>
+        <div class="detalle-item"><span class="detalle-label">Técnico asignado:</span> {{ ordenSeleccionada.tecnico_asignado || '—' }}</div>
+        <div class="detalle-item full-width" *ngIf="ordenSeleccionada.observaciones"><span class="detalle-label">Observaciones:</span> {{ ordenSeleccionada.observaciones }}</div>
+        <div class="detalle-item"><span class="detalle-label">Última actualización:</span> {{ formatearFecha(ordenSeleccionada.updated_at) }}</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="cerrarModalDetalle()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Orden -->
+<div class="modal-overlay" *ngIf="mostrarModalEditar && ordenSeleccionada" (click)="cerrarModalEditar()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">✏️ Editar orden #{{ ordenSeleccionada.id }}</h3>
+      <button class="modal-cerrar" (click)="cerrarModalEditar()">×</button>
+    </div>
+    <div class="modal-body">
+      <form class="formulario">
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea [(ngModel)]="editarOrden.descripcion" name="descripcion" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select [(ngModel)]="editarOrden.estado" name="estado">
+            <option *ngFor="let e of estadosDisponibles" [value]="e.value">{{ e.label }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Técnico asignado</label>
+          <input type="text" [(ngModel)]="editarOrden.tecnico_asignado" name="tecnico_asignado">
+        </div>
+        <div class="form-group">
+          <label>Observaciones</label>
+          <textarea [(ngModel)]="editarOrden.observaciones" name="observaciones" rows="2"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalEditar()">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="guardarEdicion()">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Eliminar Orden -->
+<div class="modal-overlay" *ngIf="mostrarModalEliminar && ordenSeleccionada" (click)="cerrarModalEliminar()">
+  <div class="modal-container modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">⚠️ Confirmar eliminación</h3>
+      <button class="modal-cerrar" (click)="cerrarModalEliminar()">×</button>
+    </div>
+    <div class="modal-body">
+      <p>¿Está seguro de eliminar la orden #{{ ordenSeleccionada.id }}?<br>Esta acción no se puede deshacer.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalEliminar()">Cancelar</button>
+      <button class="btn btn-danger" (click)="eliminarOrden()">Eliminar</button>
+    </div>
+  </div>
+</div>
