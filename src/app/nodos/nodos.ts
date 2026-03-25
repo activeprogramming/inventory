@@ -149,7 +149,9 @@ export class Nodos implements OnInit {
         cantidad_actual: nodo.campos_extra?.cantidad_actual ?? 1,
         estanteria: nodo.campos_extra?.estanteria || '',
         precio: nodo.campos_extra?.precio ?? null,
-        fecha_instalacion: nodo.campos_extra?.fecha_instalacion || '',
+        fecha_instalacion: nodo.campos_extra?.fecha_instalacion
+      ? new Date(nodo.campos_extra.fecha_instalacion).toISOString().split('T')[0]
+      : '',
         observaciones: nodo.campos_extra?.observaciones || '',
         estado: nodo.campos_extra?.estado || 'activo'
       };
@@ -169,26 +171,26 @@ export class Nodos implements OnInit {
     this.mostrarModalForm = true;
   }
 
-  resetFormulario() {
-    const tipoDefecto = this.obtenerTipoUbicacionDefecto();
-    this.formData = {
-      nombre: '',
-      descripcion: '',
-      tipo_id: tipoDefecto,
-      estado_activo: true,
-      part_number: '',
-      serial_number: '',
-      codigo: '',
-      criticidad: 'medio',
-      cantidad_actual: 1,
-      estanteria: '',
-      precio: null,
-      fecha_instalacion: '',
-      observaciones: '',
-      estado: 'activo'
-    };
-    // No hace falta forzar cambios aquí porque aún no se muestra el modal
-  }
+ resetFormulario() {
+  const tipoDefecto = this.obtenerTipoUbicacionDefecto();
+  const hoy = new Date().toISOString().split('T')[0]; // formato yyyy-mm-dd
+  this.formData = {
+    nombre: '',
+    descripcion: '',
+    tipo_id: tipoDefecto,
+    estado_activo: true,
+    part_number: '',
+    serial_number: '',
+    codigo: '',
+    criticidad: 'medio',
+    cantidad_actual: 1,
+    estanteria: '',
+    precio: null,
+    fecha_instalacion: hoy,  // 👈 asignamos la fecha actual
+    observaciones: '',
+    estado: 'activo'
+  };
+}
   private obtenerTipoUbicacionDefecto(): number {
     const ubicacion = this.tiposNodo.find(t => t.es_equipo === false);
     return ubicacion?.id || this.tiposNodo[0]?.id || 1;

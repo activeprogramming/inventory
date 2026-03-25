@@ -1,1 +1,377 @@
-<p>incidencias works!</p>
+<!-- incidencias.html -->
+<div class="incidencias-container">
+  <!-- Header -->
+  <header class="incidencias-header">
+    <div class="header-content">
+      <h1 class="titulo-principal">
+        <span class="icono">⚠️</span>
+        Gestión de Incidencias
+      </h1>
+      <p class="subtitulo">Registre y gestione las incidencias de equipos</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="abrirModalCrear()">
+        <span class="icono-btn">➕</span> Nueva Incidencia
+      </button>
+    </div>
+  </header>
+
+  <!-- Estadísticas -->
+  <div class="estadisticas" *ngIf="!loading">
+    <div class="estadistica-card">
+      <div class="estadistica-valor">{{ totalRegistros }}</div>
+      <div class="estadistica-label">Total</div>
+    </div>
+    <div *ngIf="!loading" class="estadisticas">
+  <div class="estadistica-card">
+    <div class="estadistica-valor">{{ totalRegistros }}</div>
+    <div class="estadistica-label">Total</div>
+  </div>
+  <div class="estadistica-card">
+    <div class="estadistica-valor">{{ abiertasCount }}</div>
+    <div class="estadistica-label">Abiertas</div>
+  </div>
+  <div class="estadistica-card">
+    <div class="estadistica-valor">{{ enProcesoCount }}</div>
+    <div class="estadistica-label">En proceso</div>
+  </div>
+  <div class="estadistica-card">
+    <div class="estadistica-valor">{{ cerradasCount }}</div>
+    <div class="estadistica-label">Cerradas</div>
+  </div>
+</div>
+  </div>
+
+  <!-- Filtros -->
+  <section class="filtros-section">
+    <div class="filtros-header">
+      <h2 class="titulo-seccion">🔍 Filtros de búsqueda</h2>
+    </div>
+    <div class="filtros-grid">
+      <div class="filtro-item">
+        <label>Búsqueda</label>
+        <input type="text" [(ngModel)]="filtros.search"
+          placeholder="Buscar por descripción, detalles..."
+          (keyup.enter)="aplicarFiltros()">
+      </div>
+      <div class="filtro-item">
+        <label>Estado</label>
+        <select [(ngModel)]="filtros.estado">
+          <option value>Todos</option>
+          <option *ngFor="let e of estadosDisponibles" [value]="e.value">{{
+            e.label }}</option>
+        </select>
+      </div>
+      <div class="filtro-item">
+        <label>Prioridad</label>
+        <select [(ngModel)]="filtros.prioridad">
+          <option value>Todas</option>
+          <option *ngFor="let p of prioridadesDisponibles" [value]="p.value">{{
+            p.label }}</option>
+        </select>
+      </div>
+      <div class="filtro-item">
+        <label>Desde</label>
+        <input type="date" [(ngModel)]="filtros.fecha_desde">
+      </div>
+      <div class="filtro-item">
+        <label>Hasta</label>
+        <input type="date" [(ngModel)]="filtros.fecha_hasta">
+      </div>
+    </div>
+    <div class="filtros-actions">
+      <button class="btn btn-apply" (click)="aplicarFiltros()">Aplicar
+        filtros</button>
+      <button class="btn btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+    </div>
+  </section>
+
+  <!-- Tabla de incidencias -->
+  <section class="tabla-section">
+    <div class="tabla-header">
+      <h2 class="titulo-seccion">📋 Listado de incidencias</h2>
+      <div class="tabla-info">Mostrando {{ incidencias.length }} de {{
+        totalRegistros }}</div>
+    </div>
+    <div class="tabla-container">
+      <table class="incidencias-tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nodo</th>
+            <th>Descripción</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Prioridad</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let inc of incidencias" class="registro-fila">
+            <td class="col-id">{{ inc.id }}</td>
+            <td class="col-nodo">{{ inc.nodo_nombre }} ({{ inc.nodo_tipo
+              }})</td>
+            <td class="col-descripcion">{{ inc.descripcion | slice:0:60 }}{{
+              inc.descripcion!.length > 60 ? '...' : '' }}</td>
+            <td class="col-fecha">{{ formatearFecha(inc.fecha_reporte) }}</td>
+            <td class="col-estado">
+              <span class="badge-estado" [class]="getColorEstado(inc.estado)">
+                {{ inc.estado | titlecase }}
+              </span>
+            </td>
+            <td class="col-prioridad">
+              <span class="badge-prioridad"
+                [class]="getColorPrioridad(inc.prioridad)">
+                {{ inc.prioridad | titlecase }}
+              </span>
+            </td>
+            <td class="col-acciones">
+              <button class="btn-icon" (click)="abrirModalDetalle(inc)"
+                title="Ver">👁️</button>
+              <button class="btn-icon" (click)="abrirModalEditar(inc)"
+                title="Editar">✏️</button>
+              <button class="btn-icon btn-eliminar"
+                (click)="abrirModalEliminar(inc)" title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && incidencias.length === 0">
+            <td colspan="7" class="sin-datos">
+              <div class="sin-datos-icon">📭</div>
+              <div>No hay incidencias registradas</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="paginacion" *ngIf="totalPaginas > 1">
+      <button class="btn-pagina" (click)="paginaAnterior()"
+        [disabled]="filtros.page === 1">← Anterior</button>
+      <div class="paginas-numeros">
+        <span *ngFor="let pag of generarRangoPaginas()"
+          (click)="irAPagina(pag)"
+          [class.pagina-activa]="pag === filtros.page"
+          class="numero-pagina">{{ pag }}</span>
+      </div>
+      <button class="btn-pagina" (click)="paginaSiguiente()"
+        [disabled]="filtros.page === totalPaginas">Siguiente →</button>
+    </div>
+  </section>
+</div>
+
+<!-- Modal Crear Incidencia -->
+<div class="modal-overlay" *ngIf="mostrarModalCrear"
+  (click)="cerrarModalCrear()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">➕ Nueva Incidencia</h3>
+      <button class="modal-cerrar" (click)="cerrarModalCrear()">×</button>
+    </div>
+    <div class="modal-body">
+      <form class="formulario">
+        <div class="form-group">
+          <label>Nodo (Equipo/Componente) *</label>
+          <div class="selector-nodo">
+            <input type="text" [value]="nuevaIncidencia.nodo_nombre"
+              placeholder="Seleccione un nodo" readonly>
+            <button type="button" class="btn btn-sm btn-outline"
+              (click)="abrirSelectorNodo()">Seleccionar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripción *</label>
+          <textarea [(ngModel)]="nuevaIncidencia.descripcion" name="descripcion"
+            rows="2" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Prioridad</label>
+          <select [(ngModel)]="nuevaIncidencia.prioridad" name="prioridad">
+            <option *ngFor="let p of prioridadesDisponibles"
+              [value]="p.value">{{ p.label }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Reportado por</label>
+          <input type="text" [(ngModel)]="nuevaIncidencia.reportado_por"
+            name="reportado_por">
+        </div>
+        <div class="form-group">
+          <label>Detalles</label>
+          <textarea [(ngModel)]="nuevaIncidencia.detalles" name="detalles"
+            rows="3"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary"
+            (click)="cerrarModalCrear()">Cancelar</button>
+          <button type="button" class="btn btn-primary"
+            (click)="crearIncidencia()">Crear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Selección de Nodo (Árbol de equipos) -->
+<div class="modal-overlay" *ngIf="mostrarSelectorNodo"
+  (click)="cerrarSelectorNodo()">
+  <div class="modal-container modal-arbol" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">🌳 Seleccione un equipo o componente</h3>
+      <button class="modal-cerrar" (click)="cerrarSelectorNodo()">×</button>
+    </div>
+    <div class="modal-body">
+       <div class="arbol-selector">
+  <ng-template #nodoRecursivo let-nodo>
+    <div class="nodo-item">
+      <div class="nodo-header">
+        <div class="nodo-icon" (click)="nodo.colapsado = !nodo.colapsado">
+          <span *ngIf="nodo.hijos?.length" class="expand-icon">{{ nodo.colapsado ? '▶' : '▼' }}</span>
+          <span *ngIf="!nodo.hijos?.length" class="leaf-icon">•</span>
+        </div>
+        <div class="nodo-nombre" [class.selectable]="nodo.es_equipo" (click)="seleccionarNodo(nodo)">
+          {{ nodo.nombre }}
+          <span class="nodo-tipo">({{ nodo.tipo_nombre }})</span>
+        </div>
+      </div>
+      <div class="nodo-hijos" *ngIf="nodo.hijos?.length && !nodo.colapsado">
+        <div *ngFor="let hijo of nodo.hijos; trackBy: trackByFn" class="nodo-hijo">
+          <ng-container *ngTemplateOutlet="nodoRecursivo; context: { $implicit: hijo }"></ng-container>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+  <div *ngFor="let raiz of arbolEquipos; trackBy: trackByFn">
+    <ng-container *ngTemplateOutlet="nodoRecursivo; context: { $implicit: raiz }"></ng-container>
+  </div>
+  <div *ngIf="arbolEquipos.length === 0" class="sin-datos">No hay nodos registrados</div>
+</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary"
+        (click)="cerrarSelectorNodo()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalle Incidencia -->
+<div class="modal-overlay" *ngIf="mostrarModalDetalle && incidenciaSeleccionada"
+  (click)="cerrarModalDetalle()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">📄 Detalle de incidencia #{{
+        incidenciaSeleccionada.id }}</h3>
+      <button class="modal-cerrar" (click)="cerrarModalDetalle()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="detalles-grid">
+        <div class="detalle-item"><span class="detalle-label">Nodo:</span> {{
+          incidenciaSeleccionada.nodo_nombre }} ({{
+          incidenciaSeleccionada.nodo_tipo }})</div>
+          <!-- Campos extra del nodo (si existen) -->
+<div class="detalle-item full-width" *ngIf="nodoDetalle?.campos_extra">
+  <span class="detalle-label">Información técnica:</span>
+  <div class="info-tecnica">
+    <div *ngIf="nodoDetalle?.campos_extra?.part_number">Part Number: {{ nodoDetalle?.campos_extra?.part_number }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.serial_number">Serial Number: {{ nodoDetalle?.campos_extra?.serial_number }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.codigo">Código: {{ nodoDetalle?.campos_extra?.codigo }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.criticidad">Criticidad: {{ nodoDetalle?.campos_extra?.criticidad }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.cantidad_actual">Cantidad: {{ nodoDetalle?.campos_extra?.cantidad_actual }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.estanteria">Estantería: {{ nodoDetalle?.campos_extra?.estanteria }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.precio">Precio: {{ nodoDetalle?.campos_extra?.precio | currency }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.fecha_instalacion">Fecha instalación: {{ nodoDetalle?.campos_extra?.fecha_instalacion | date:'dd/MM/yyyy' }}</div>
+    <div *ngIf="nodoDetalle?.campos_extra?.estado">Estado: {{ nodoDetalle?.campos_extra?.estado }}</div>
+  </div>
+</div>
+        <div class="detalle-item"><span class="detalle-label">Fecha
+            reporte:</span> {{
+          formatearFecha(incidenciaSeleccionada.fecha_reporte) }}</div>
+        <div class="detalle-item"><span class="detalle-label">Reportado
+            por:</span> {{ incidenciaSeleccionada.reportado_por || '—' }}</div>
+        <div class="detalle-item"><span class="detalle-label">Estado:</span> {{
+          incidenciaSeleccionada.estado | titlecase }}</div>
+        <div class="detalle-item"><span class="detalle-label">Prioridad:</span>
+          {{ incidenciaSeleccionada.prioridad | titlecase }}</div>
+        <div class="detalle-item full-width"><span
+            class="detalle-label">Descripción:</span> {{
+          incidenciaSeleccionada.descripcion || '—' }}</div>
+        <div class="detalle-item full-width"
+          *ngIf="incidenciaSeleccionada.detalles"><span
+            class="detalle-label">Detalles:</span> {{
+          incidenciaSeleccionada.detalles }}</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary"
+        (click)="cerrarModalDetalle()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Incidencia -->
+<div class="modal-overlay" *ngIf="mostrarModalEditar && incidenciaSeleccionada"
+  (click)="cerrarModalEditar()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">✏️ Editar incidencia #{{
+        incidenciaSeleccionada.id }}</h3>
+      <button class="modal-cerrar" (click)="cerrarModalEditar()">×</button>
+    </div>
+    <div class="modal-body">
+      <form class="formulario">
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea [(ngModel)]="editarIncidencia.descripcion"
+            name="descripcion" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select [(ngModel)]="editarIncidencia.estado" name="estado">
+            <option *ngFor="let e of estadosDisponibles" [value]="e.value">{{
+              e.label }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prioridad</label>
+          <select [(ngModel)]="editarIncidencia.prioridad" name="prioridad">
+            <option *ngFor="let p of prioridadesDisponibles"
+              [value]="p.value">{{ p.label }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Detalles</label>
+          <textarea [(ngModel)]="editarIncidencia.detalles" name="detalles"
+            rows="3"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary"
+            (click)="cerrarModalEditar()">Cancelar</button>
+          <button type="button" class="btn btn-primary"
+            (click)="guardarEdicion()">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Eliminar Incidencia -->
+<div class="modal-overlay"
+  *ngIf="mostrarModalEliminar && incidenciaSeleccionada"
+  (click)="cerrarModalEliminar()">
+  <div class="modal-container modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">⚠️ Confirmar eliminación</h3>
+      <button class="modal-cerrar" (click)="cerrarModalEliminar()">×</button>
+    </div>
+    <div class="modal-body">
+      <p>¿Está seguro de eliminar la incidencia #{{ incidenciaSeleccionada.id
+        }}?<br>Esta acción también eliminará la orden de trabajo asociada.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary"
+        (click)="cerrarModalEliminar()">Cancelar</button>
+      <button class="btn btn-danger"
+        (click)="eliminarIncidencia()">Eliminar</button>
+    </div>
+  </div>
+</div>

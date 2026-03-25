@@ -39,6 +39,10 @@ export interface Nodo {
   providedIn: 'root'
 })
 export class NodosService {
+  // Retornar el nodo raíz
+  getArbolOptimizado(arg0: null) {
+    throw new Error('Method not implemented.');
+  }
   private tableName = 'nodos';
   private camposExtraTable = 'campos_extra_nodo';
 
