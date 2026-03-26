@@ -141,6 +141,12 @@ cerrarModalIncidencia() {
   async ngOnInit() {
     await this.cargarOrdenes();
     await this.cargarArbolNodos();
+     try {
+    const creadas = await this.ordenesService.generarOrdenesPreventivas();
+    console.log(`✅ Órdenes preventivas generadas: ${creadas}`);
+  } catch (error) {
+    console.error('Error generando órdenes preventivas', error);
+  }
   }
 
   async cargarOrdenes() {

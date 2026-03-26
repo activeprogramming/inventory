@@ -109,14 +109,6 @@
           </div>
         </li>
 
-        <li *ngIf="tienePrivilegio('ubicaciones.ver')" class="nav-item"
-          [routerLink]="['/ubicacion']"routerLinkActive="navList__subheading--active">
-          <div class="navList__subheading row row--align-v-center">
-            <span class="navList__subheading-icon"><i
-                class="fas fa-school"></i></span>
-            <span class="navList__subheading-title">Ubicaciones</span>
-          </div>
-        </li>
 
         <li *ngIf="tienePrivilegio('ubicaciones.ver')" class="nav-item"
           [routerLink]="['/tiponodo']"routerLinkActive="navList__subheading--active">
@@ -154,14 +146,6 @@
           </div>
         </li>
 
-        <li *ngIf="tienePrivilegio('ubicaciones.ver')" class="nav-item"
-          [routerLink]="['/tareas']"routerLinkActive="navList__subheading--active">
-          <div class="navList__subheading row row--align-v-center">
-            <span class="navList__subheading-icon"><i
-                class="fas fa-school"></i></span>
-            <span class="navList__subheading-title">Tareas</span>
-          </div>
-        </li>
 
         <li *ngIf="tienePrivilegio('ubicaciones.ver')" class="nav-item"
           [routerLink]="['/mantenimientos']"routerLinkActive="navList__subheading--active">
@@ -172,6 +156,22 @@
           </div>
         </li>
 
+        <li *ngIf="tienePrivilegio('ubicaciones.ver')" class="nav-item"
+          [routerLink]="['/tareas']"routerLinkActive="navList__subheading--active">
+          <div class="navList__subheading row row--align-v-center">
+            <span class="navList__subheading-icon"><i
+                class="fas fa-school"></i></span>
+            <span class="navList__subheading-title">Tareas</span>
+          </div>
+        </li>
+        <li *ngIf="tienePrivilegio('ubicaciones.ver')" class="nav-item"
+          [routerLink]="['/ubicacion']"routerLinkActive="navList__subheading--active">
+          <div class="navList__subheading row row--align-v-center">
+            <span class="navList__subheading-icon"><i
+                class="fas fa-school"></i></span>
+            <span class="navList__subheading-title">Ubicaciones</span>
+          </div>
+        </li>
         <li class="navList__heading">SYSTEMA<i
             class="far fa-image"></i></li>
 

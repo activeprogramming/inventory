@@ -1,1 +1,334 @@
-<p>tareas works!</p>
+<div class="tareas-container">
+  <!-- Header -->
+  <header class="tareas-header">
+    <div class="header-content">
+      <h1 class="titulo-principal">
+        <span class="icono">📋</span>
+        Gestión de Tareas Preventivas
+      </h1>
+      <p class="subtitulo">Administre las tareas de mantenimiento preventivo</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="abrirModalCrear()">
+        <span class="icono-btn">➕</span> Nueva Tarea
+      </button>
+    </div>
+  </header>
+
+  <!-- Estadísticas -->
+  <div class="estadisticas" *ngIf="!loading">
+    <div class="estadistica-card">
+      <div class="estadistica-valor">{{ totalRegistros }}</div>
+      <div class="estadistica-label">Total</div>
+    </div>
+    <div class="estadistica-card">
+      <div class="estadistica-valor">{{ totalActivas }}</div>
+      <div class="estadistica-label">Activas</div>
+    </div>
+    <div class="estadistica-card">
+      <div class="estadistica-valor">{{ totalInactivas }}</div>
+      <div class="estadistica-label">Inactivas</div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <section class="filtros-section">
+    <div class="filtros-header">
+      <h2 class="titulo-seccion">🔍 Filtros de búsqueda</h2>
+    </div>
+    <div class="filtros-grid">
+      <div class="filtro-item">
+        <label>Búsqueda</label>
+        <input type="text" [(ngModel)]="filtros.search"
+          placeholder="Buscar por nombre, descripción..."
+          (keyup.enter)="aplicarFiltros()">
+      </div>
+      <div class="filtro-item">
+        <label>Estado</label>
+        <select [(ngModel)]="filtros.estado">
+          <option value>Todos</option>
+          <option value="activo">Activas</option>
+          <option value="inactivo">Inactivas</option>
+        </select>
+      </div>
+    </div>
+    <div class="filtros-actions">
+      <button class="btn btn-apply" (click)="aplicarFiltros()">Aplicar
+        filtros</button>
+      <button class="btn btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+    </div>
+  </section>
+
+  <!-- Tabla de tareas -->
+  <section class="tabla-section">
+    <div class="tabla-header">
+      <h2 class="titulo-seccion">📋 Listado de tareas</h2>
+      <div class="tabla-info">Mostrando {{ tareas.length }} de {{ totalRegistros
+        }}</div>
+    </div>
+    <div class="tabla-container">
+      <table class="tareas-tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Intervalo (meses)</th>
+            <th>Duración (min)</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tarea of tareas" class="registro-fila">
+            <td class="col-id">{{ tarea.id }}</td>
+            <td class="col-nombre">{{ tarea.nombre }}</td>
+            <td class="col-descripcion">{{ (tarea.descripcion || '') |
+              slice:0:60 }}{{ (tarea.descripcion?.length ?? 0) > 60 ? '...' : ''
+              }}</td>
+            <td class="col-intervalo">{{ tarea.intervalo_ejecucion_meses ?? '—'
+              }}</td>
+            <td class="col-duracion">{{ tarea.duracion_estimada_minutos ?? '—'
+              }}</td>
+            <td class="col-estado">
+              <span class="badge-estado"
+                [class]="getEstadoBadgeClass(tarea.estado)">
+                {{ getEstadoTexto(tarea.estado) }}
+              </span>
+            </td>
+            <td class="col-acciones">
+              <button class="btn-icon" (click)="abrirModalEditar(tarea)"
+                title="Editar">✏️</button>
+              <button class="btn-icon" (click)="abrirModalAsignar(tarea)"
+                title="Asignar a nodos">🔗</button>
+              <button class="btn-icon" (click)="verNodosAsignados(tarea)"
+                title="Ver nodos asignados">👁️</button>
+              <button class="btn-icon btn-eliminar"
+                (click)="abrirModalEliminar(tarea)"
+                title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && tareas.length === 0">
+            <td colspan="7" class="sin-datos">
+              <div class="sin-datos-icon">📭</div>
+              <div>No hay tareas registradas</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="paginacion" *ngIf="totalPaginas > 1">
+      <button class="btn-pagina" (click)="paginaAnterior()"
+        [disabled]="filtros.page === 1">← Anterior</button>
+      <div class="paginas-numeros">
+        <span *ngFor="let pag of generarRangoPaginas()"
+          (click)="irAPagina(pag)"
+          [class.pagina-activa]="pag === filtros.page"
+          class="numero-pagina">{{ pag }}</span>
+      </div>
+      <button class="btn-pagina" (click)="paginaSiguiente()"
+        [disabled]="filtros.page === totalPaginas">Siguiente →</button>
+    </div>
+  </section>
+</div>
+
+<!-- Modal Crear/Editar Tarea -->
+<div class="modal-overlay" *ngIf="mostrarModalCrear || mostrarModalEditar"
+  (click)="mostrarModalCrear ? cerrarModalCrear() : cerrarModalEditar()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">{{ mostrarModalCrear ? '➕ Nueva Tarea' :
+        '✏️ Editar Tarea' }}</h3>
+      <button class="modal-cerrar"
+        (click)="mostrarModalCrear ? cerrarModalCrear() : cerrarModalEditar()">×</button>
+    </div>
+    <div class="modal-body">
+      <form class="formulario">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input type="text" [(ngModel)]="formTarea.nombre" name="nombre"
+            required>
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea [(ngModel)]="formTarea.descripcion" name="descripcion"
+            rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Intervalo (meses)</label>
+          <input type="number" [(ngModel)]="formTarea.intervalo_ejecucion_meses"
+            name="intervalo">
+        </div>
+        <div class="form-group">
+          <label>Duración estimada (minutos)</label>
+          <input type="number" [(ngModel)]="formTarea.duracion_estimada_minutos"
+            name="duracion">
+        </div>
+        <div class="form-group">
+          <label>Detalles</label>
+          <textarea [(ngModel)]="formTarea.detalles" name="detalles"
+            rows="2"></textarea>
+        </div>
+        <div class="form-group checkbox">
+          <label>
+            <input type="checkbox" [(ngModel)]="formTarea.estado" name="estado">
+            Activa
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary"
+            (click)="mostrarModalCrear ? cerrarModalCrear() : cerrarModalEditar()">Cancelar</button>
+          <button type="button" class="btn btn-primary"
+            (click)="mostrarModalCrear ? crearTarea() : guardarEdicion()">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Asignar Tarea a Nodos -->
+<div class="modal-overlay" *ngIf="mostrarModalAsignar"
+  (click)="cerrarModalAsignar()">
+  <div class="modal-container modal-arbol" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">🔗 Asignar tarea
+        "{{ tareaSeleccionada?.nombre }}" a nodos</h3>
+      <button class="modal-cerrar" (click)="cerrarModalAsignar()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="arbol-selector">
+  <ng-template #nodoCheckbox let-nodo>
+    <div class="nodo-item">
+      <div class="nodo-header">
+        <div class="nodo-icon" (click)="nodo.colapsado = !nodo.colapsado">
+          <span *ngIf="nodo.hijos?.length" class="expand-icon">{{ nodo.colapsado ? '▶' : '▼' }}</span>
+          <span *ngIf="!nodo.hijos?.length" class="leaf-icon">•</span>
+        </div>
+        <label class="nodo-checkbox">
+  <input *ngIf="nodo.es_equipo" type="checkbox" 
+         [checked]="seleccionados.has(nodo.id)" 
+         (change)="toggleNodo(nodo, $event.target.checked)">
+  <span class="nodo-nombre" [class.selectable]="nodo.es_equipo">
+    {{ nodo.nombre }}
+    <span class="nodo-tipo">({{ nodo.tipo_nombre }})</span>
+  </span>
+</label>
+      </div>
+      <div class="nodo-hijos" *ngIf="nodo.hijos?.length && !nodo.colapsado">
+        <div *ngFor="let hijo of nodo.hijos; trackBy: trackByFn" class="nodo-hijo">
+          <ng-container *ngTemplateOutlet="nodoCheckbox; context: { $implicit: hijo }"></ng-container>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+  <div *ngFor="let raiz of arbolNodos; trackBy: trackByFn">
+    <ng-container *ngTemplateOutlet="nodoCheckbox; context: { $implicit: raiz }"></ng-container>
+  </div>
+</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary"
+        (click)="cerrarModalAsignar()">Cancelar</button>
+      <button class="btn btn-primary" (click)="guardarAsignaciones()">Guardar
+        asignaciones</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ver Nodos Asignados -->
+<!-- Modal Ver Nodos Asignados -->
+<div class="modal-overlay" *ngIf="mostrarModalVerNodos && tareaSeleccionada" (click)="cerrarModalVerNodos()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">📋 Nodos asignados a "{{ tareaSeleccionada.nombre }}"</h3>
+      <button class="modal-cerrar" (click)="cerrarModalVerNodos()">×</button>
+    </div>
+    <div class="modal-body">
+      <div *ngIf="nodosAsignados.length === 0" class="sin-datos">
+        No hay nodos asignados a esta tarea.
+      </div>
+      <div class="lista-nodos">
+        <div *ngFor="let asig of nodosAsignados" class="nodo-item">
+          <div class="nodo-header">
+            <div class="nodo-icon">•</div>
+            <div class="nodo-nombre">
+              {{ asig.nodo_nombre }} <span class="nodo-tipo">({{ asig.nodo_tipo }})</span>
+
+              
+
+              <!-- Campos extra del nodo -->
+              <div *ngIf="asig.nodo?.campos_extra" class="info-tecnica">
+                <div *ngIf="asig.nodo?.campos_extra?.part_number">
+                  <strong>Part Number:</strong> {{ asig.nodo?.campos_extra?.part_number }}
+                </div>
+                <div *ngIf="asig.nodo?.campos_extra?.serial_number">
+                  <strong>Serial:</strong> {{ asig.nodo?.campos_extra?.serial_number }}
+                </div>
+                <div *ngIf="asig.nodo?.campos_extra?.codigo">
+                  <strong>Código:</strong> {{ asig.nodo?.campos_extra?.codigo }}
+                </div>
+                <div *ngIf="asig.nodo?.campos_extra?.criticidad">
+                  <strong>Criticidad:</strong> {{ asig.nodo?.campos_extra?.criticidad }}
+                </div>
+                <div *ngIf="asig.nodo?.campos_extra?.cantidad_actual">
+                  <strong>Cantidad:</strong> {{ asig.nodo?.campos_extra?.cantidad_actual }}
+                </div>
+                <div *ngIf="asig.nodo?.campos_extra?.estanteria">
+                  <strong>Estantería:</strong> {{ asig.nodo?.campos_extra?.estanteria }}
+                </div>
+                <div *ngIf="asig.nodo?.campos_extra?.precio">
+                  <strong>Precio:</strong> {{ asig.nodo?.campos_extra?.precio | currency }}
+                </div>
+                <div *ngIf="asig.nodo?.campos_extra?.fecha_instalacion">
+                  <strong>Fecha instalación:</strong> {{ asig.nodo?.campos_extra?.fecha_instalacion | date:'dd/MM/yyyy' }}
+                </div>
+                <div *ngIf="asig.nodo?.campos_extra?.estado">
+                  <strong>Estado técnico:</strong> {{ asig.nodo?.campos_extra?.estado }}
+                </div>
+                <div *ngIf="asig.nodo?.campos_extra?.observaciones">
+                  <strong>Observaciones:</strong> {{ asig.nodo?.campos_extra?.observaciones }}
+                </div>
+                <!-- Ubicación completa -->
+              <div *ngIf="asig.nodo_id" class="info-tecnica" style="margin-top: 4px;">
+                <strong>Ubicación completa:</strong> {{ obtenerRutaNodo(asig.nodo_id) }}
+              </div>
+              </div>
+
+              <!-- Orden de ejecución y detalles de asignación -->
+              <div *ngIf="asig.orden_ejecucion || asig.detalles" class="info-tecnica" style="margin-top: 4px;">
+                <div *ngIf="asig.orden_ejecucion">Orden ejecución: {{ asig.orden_ejecucion }}</div>
+                <div *ngIf="asig.detalles">Detalles asignación: {{ asig.detalles }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="cerrarModalVerNodos()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Eliminar Tarea -->
+<div class="modal-overlay" *ngIf="mostrarModalEliminar && tareaSeleccionada"
+  (click)="cerrarModalEliminar()">
+  <div class="modal-container modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">⚠️ Confirmar eliminación</h3>
+      <button class="modal-cerrar" (click)="cerrarModalEliminar()">×</button>
+    </div>
+    <div class="modal-body">
+      <p>¿Está seguro de eliminar la tarea
+        "{{ tareaSeleccionada.nombre }}"?<br>Esta acción también eliminará todas
+        las asignaciones a nodos.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary"
+        (click)="cerrarModalEliminar()">Cancelar</button>
+      <button class="btn btn-danger" (click)="eliminarTarea()">Eliminar</button>
+    </div>
+  </div>
+</div>

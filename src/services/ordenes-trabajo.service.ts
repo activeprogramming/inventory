@@ -239,4 +239,21 @@ export class OrdenesTrabajoService {
 
     return new Error(error.message || `Error al ${context}`);
   }
+
+  
+
+  /**
+ * Ejecuta la función RPC que genera órdenes preventivas automáticamente
+ * @returns número de órdenes creadas
+ */
+async generarOrdenesPreventivas(): Promise<number> {
+  try {
+    const { data, error } = await supabase.rpc('generar_ordenes_preventivas');
+    if (error) throw error;
+    return data?.ordenes_creadas || 0;
+  } catch (error: any) {
+    console.error('❌ Error generando órdenes preventivas:', error);
+    throw this.handleError(error, 'generar órdenes preventivas');
+  }
+}
 }

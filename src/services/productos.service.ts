@@ -2284,3 +2284,4 @@ async enviarReporteMovimiento(detalle: any): Promise<boolean> {
     }
   }
 }
+ 

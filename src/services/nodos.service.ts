@@ -39,6 +39,18 @@ export interface Nodo {
   providedIn: 'root'
 })
 export class NodosService {
+  crearNodoCompleto(nuevoNodoData: { parent_id: number | null; tipo_id: number; nombre: string; part_number: string | null; serial_number: string | null; codigo: string | null; criticidad: "BAJA" | "MEDIA" | "ALTA" | "CRÍTICO"; cantidad_actual: number; estanteria: string | null; precio: number | null; fecha_instalacion: string; observaciones_extra: string | null; estado: string; }) {
+    throw new Error('Method not implemented.');
+  }
+async desactivarNodo(id: number, motivo?: string): Promise<void> {
+  // Solo actualiza el estado_activo a false
+  const { error } = await supabase
+    .from(this.tableName)
+    .update({ estado_activo: false })
+    .eq('id', id);
+  if (error) throw error;
+  console.log(`✅ Nodo ${id} desactivado`);
+}
   // Retornar el nodo raíz
   getArbolOptimizado(arg0: null) {
     throw new Error('Method not implemented.');
@@ -86,7 +98,55 @@ async getArbol(rootId: number): Promise<Nodo> {
   return this.buildTreeFromFlat(data, rootId);
 }
 
+async crearNodoCompletox(datos: {
+  parent_id: number | null;
+  tipo_id: number;
+  nombre: string;
+  part_number?: string | null;
+  serial_number?: string | null;
+  codigo?: string | null;
+  criticidad?: string;
+  cantidad_actual?: number;
+  estanteria?: string | null;
+  precio?: number | null;
+  fecha_instalacion?: string | null;
+  observaciones_extra?: string | null;
+  estado?: string;
+}): Promise<number> {
+  // 1. Insertar en nodos
+  const { data: nodo, error: nodoError } = await supabase
+    .from('nodos')
+    .insert({
+      parent_id: datos.parent_id,
+      tipo_id: datos.tipo_id,
+      nombre: datos.nombre,
+      estado_activo: true,
+      descripcion: null
+    })
+    .select()
+    .single();
+  if (nodoError) throw nodoError;
 
+  // 2. Insertar en campos_extra_nodo
+  const { error: extraError } = await supabase
+    .from('campos_extra_nodo')
+    .insert({
+      nodo_id: nodo.id,
+      part_number: datos.part_number || null,
+      serial_number: datos.serial_number || null,
+      codigo: datos.codigo || null,
+      criticidad: datos.criticidad || 'medio',
+      cantidad_actual: datos.cantidad_actual ?? 1,
+      estanteria: datos.estanteria || null,
+      precio: datos.precio || null,
+      fecha_instalacion: datos.fecha_instalacion || new Date().toISOString(),
+      observaciones: datos.observaciones_extra || null,
+      estado: datos.estado || 'activo'
+    });
+  if (extraError) throw extraError;
+
+  return nodo.id;
+}
 // Convierte un array plano de nodos (con parent_id) en un árbol jerárquico
 private buildTreeFromFlat(flatNodes: any[], rootId: number): Nodo {
   // Crear un mapa de nodos por id
@@ -111,6 +171,9 @@ private buildTreeFromFlat(flatNodes: any[], rootId: number): Nodo {
   // Retornar el nodo raíz
   return nodeMap.get(rootId)!;
 }
+
+
+
   // Crear nodo básico
   async createNodo(nodo: Omit<Nodo, 'id' | 'created_at' | 'updated_at'>): Promise<Nodo> {
     const { data, error } = await supabase

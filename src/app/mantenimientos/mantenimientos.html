@@ -1,1 +1,442 @@
-<p>mantenimientos works!</p>
+<div class="mantenimientos-container">
+  <!-- Header -->
+  <header class="mantenimientos-header">
+    <div class="header-content">
+      <h1 class="titulo-principal">
+        <span class="icono">🔧</span>
+        Ejecución de Mantenimientos
+      </h1>
+      <p class="subtitulo">Gestione la ejecución de órdenes de trabajo</p>
+    </div>
+  </header>
+
+  <!-- Filtros -->
+  <section class="filtros-section">
+    <div class="filtros-header">
+      <h2 class="titulo-seccion">🔍 Filtros de búsqueda</h2>
+    </div>
+    <div class="filtros-grid">
+      <div class="filtro-item">
+        <label>Búsqueda</label>
+        <input type="text" [(ngModel)]="filtros.search"
+          placeholder="Buscar por descripción, código..."
+          (keyup.enter)="aplicarFiltros()">
+      </div>
+      <div class="filtro-item">
+        <label>Estado</label>
+        <select [(ngModel)]="filtros.estado">
+          <option value="pendiente">Pendiente</option>
+          <option value="en_proceso">En proceso</option>
+          <option value="todos">Todos</option>
+        </select>
+      </div>
+    </div>
+    <div class="filtros-actions">
+      <button class="btn btn-apply" (click)="aplicarFiltros()">Aplicar
+        filtros</button>
+      <button class="btn btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+    </div>
+  </section>
+
+  <!-- Tabla de órdenes -->
+  <section class="tabla-section">
+    <div class="tabla-header">
+      <h2 class="titulo-seccion">📋 Órdenes de trabajo</h2>
+      <div class="tabla-info">Mostrando {{ ordenes.length }} de {{
+        totalRegistros }}</div>
+    </div>
+    <div class="tabla-container">
+      <table class="ordenes-tabla">
+        <thead>
+          <th>ID</th>
+          <th>Código</th>
+          <th>Nodo</th>
+          <th>Tipo</th>
+          <th>Descripción</th>
+          <th>Estado</th>
+          <th>Técnico</th>
+          <th>Acciones</th>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ord of ordenes" class="registro-fila">
+            <td class="col-id">{{ ord.id }}</td>
+            <td class="col-codigo">{{ ord.id }}</td>
+            <td class="col-nodo">{{ ord.nodo_nombre }} ({{ ord.nodo_tipo
+              }})</td>
+            <td class="col-tipo">
+              <span class="badge-tipo"
+                [class]="ord.tipo === 'correctivo' ? 'tipo-correctivo' : 'tipo-preventivo'">
+                {{ ord.tipo | titlecase }}
+              </span>
+            </td>
+            <td class="col-descripcion">{{ (ord.descripcion || '') | slice:0:60
+              }}{{ (ord.descripcion?.length ?? 0) > 60 ? '...' : '' }}</td>
+            <td class="col-estado">
+              <span class="badge-estado" [class]="getColorEstado(ord.estado)">
+                {{ ord.estado | titlecase }}
+              </span>
+            </td>
+            <td class="col-tecnico">{{ ord.tecnico_asignado || '—' }}</td>
+            <td class="col-acciones">
+              <button *ngIf="ord.estado === 'pendiente'" class="btn-icon"
+                (click)="iniciarEjecucion(ord)"
+                title="Iniciar ejecución">▶️</button>
+              <button *ngIf="ord.estado === 'en_proceso'" class="btn-icon"
+                (click)="continuarEjecucion(ord.id, ord)"
+                title="Continuar ejecución">✏️</button>
+              <button class="btn-icon" (click)="verEjecuciones(ord)"
+                title="Ver ejecuciones">📋</button>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && ordenes.length === 0">
+            <td colspan="8" class="sin-datos">
+              <div class="sin-datos-icon">📭</div>
+              <div>No hay órdenes de trabajo para ejecutar</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación (similar a otros componentes) -->
+    <div class="paginacion" *ngIf="totalPaginas > 1">
+      <button class="btn-pagina" (click)="paginaAnterior()"
+        [disabled]="filtros.page === 1">← Anterior</button>
+      <div class="paginas-numeros">
+        <span *ngFor="let pag of generarRangoPaginas()"
+          (click)="irAPagina(pag)"
+          [class.pagina-activa]="pag === filtros.page"
+          class="numero-pagina">{{ pag }}</span>
+      </div>
+      <button class="btn-pagina" (click)="paginaSiguiente()"
+        [disabled]="filtros.page === totalPaginas">Siguiente →</button>
+    </div>
+  </section>
+</div>
+<!-- Modal Historial de Ejecuciones -->
+<!-- Modal Historial de Ejecuciones -->
+<div class="modal-overlay" *ngIf="mostrarModalHistorialEjecuciones"
+  (click)="cerrarModalHistorial()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">📋 Historial de ejecuciones</h3>
+      <button class="modal-cerrar" (click)="cerrarModalHistorial()">×</button>
+    </div>
+    <div class="modal-body">
+      <div *ngIf="ejecucionesDetalladas.length === 0" class="sin-datos">No hay
+        ejecuciones registradas para esta orden</div>
+      <div *ngFor="let detalle of ejecucionesDetalladas" class="ejecucion-item">
+        <div><strong>Inicio:</strong> {{
+          formatearFecha(detalle.ejecucion.fecha_ejecucion_inicio!) }}</div>
+        <div><strong>Fin:</strong> {{
+          formatearFecha(detalle.ejecucion.fecha_ejecucion_fin!) || 'En curso'
+          }}</div>
+        <div><strong>Realizada por:</strong> {{ detalle.ejecucion.realizada_por
+          || '—' }}</div>
+        <div><strong>Acciones:</strong> {{ detalle.ejecucion.acciones || '—'
+          }}</div>
+        <div
+          *ngIf="detalle.ejecucion.observaciones"><strong>Observaciones:</strong>
+          {{ detalle.ejecucion.observaciones }}</div>
+
+        <div *ngIf="detalle.tareas && detalle.tareas.length">
+          <strong>Tareas realizadas:</strong>
+          <ul>
+            <li *ngFor="let t of detalle.tareas">Tarea ID {{ t.tarea_id }} - {{
+              t.observaciones || 'sin observaciones' }}</li>
+          </ul>
+        </div>
+
+        <div *ngIf="detalle.productos && detalle.productos.length">
+          <strong>Productos consumidos:</strong>
+          <ul>
+            <li *ngFor="let p of detalle.productos">{{ p.producto_nombre }} x{{
+              p.cantidad }} - {{ p.detalle || '' }} - Motivo: {{ p.motivo || ''
+              }}</li>
+          </ul>
+        </div>
+
+        <div *ngIf="detalle.reemplazos && detalle.reemplazos.length">
+          <strong>Reemplazos realizados:</strong>
+          <ul>
+            <li *ngFor="let r of detalle.reemplazos">
+              {{ r.producto_nombre }}: {{ r.nodo_original_nombre }} → {{
+              r.nodo_reemplazo_nombre }}<br>
+              <span *ngIf="r.motivo">Motivo: {{ r.motivo }}</span><br>
+              <span *ngIf="r.observaciones">Observaciones: {{ r.observaciones
+                }}</span>
+            </li>
+          </ul>
+        </div>
+        <hr>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary"
+        (click)="cerrarModalHistorial()">Cerrar</button>
+    </div>
+  </div>
+</div>
+<!-- Modal de ejecución de mantenimiento -->
+<div class="modal-overlay" *ngIf="mostrarModalEjecucion && ordenSeleccionada"
+  (click)="cerrarModalEjecucion()">
+  <div class="modal-container modal-ejecucion"
+    (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">
+        {{ ejecucionEnCurso ? 'Continuar ejecución' : 'Iniciar ejecución' }} -
+        Orden #{{ ordenSeleccionada.id }}
+      </h3>
+      <button class="modal-cerrar" (click)="cerrarModalEjecucion()">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- Datos de la orden y nodo -->
+      <div class="info-orden">
+        <p><strong>Nodo:</strong> {{ ordenSeleccionada.nodo_nombre }} ({{
+          ordenSeleccionada.nodo_tipo }})</p>
+        <p><strong>Ubicación:</strong> {{
+          obtenerRutaNodo(ordenSeleccionada.nodo_id) }}</p>
+        <p><strong>Descripción:</strong> {{ ordenSeleccionada.descripcion || '—'
+          }}</p>
+        <p><strong>Tipo:</strong> {{ ordenSeleccionada.tipo | titlecase }}</p>
+      </div>
+
+      <!-- Pestañas o secciones -->
+      <div class="ejecucion-tabs">
+        <!-- Tareas (solo preventivo) -->
+        <div
+          *ngIf="ordenSeleccionada.tipo === 'preventivo' && tareasPreventivas.length > 0"
+          class="seccion">
+          <h4>📋 Tareas preventivas</h4>
+          <div *ngFor="let tarea of tareasPreventivas; let i = index"
+            class="tarea-item">
+            <label class="tarea-checkbox">
+              <input type="checkbox" [ngModel]="tarea.completada" (ngModelChange)="onTareaCompletadaChange(i, $event)">
+              <strong>{{ tarea.nombre }}</strong> ({{
+              tarea.duracion_estimada_minutos }} min)
+            </label>
+            <div *ngIf="tarea.completada">
+              <textarea [(ngModel)]="tarea.observaciones"
+                placeholder="Observaciones de la tarea" rows="2"></textarea>
+            </div>
+          </div>
+          <div *ngIf="tareasPreventivas.length === 0" class="sin-datos">No hay
+            tareas asignadas para este nodo.</div>
+        </div>
+
+        <!-- Productos consumidos -->
+        <div class="seccion">
+          <h4>🧴 Productos consumidos</h4>
+          <div *ngFor="let prod of productosConsumidos; let i = index"
+            class="producto-item">
+            <span><strong>{{ prod.nombre }}</strong> x{{ prod.cantidad }}</span>
+            <button class="btn-icon btn-eliminar"
+              (click)="eliminarProducto(i)">🗑️</button>
+          </div>
+          <button class="btn btn-sm btn-outline"
+            (click)="abrirBuscadorProducto('consumo')">+ Agregar
+            producto</button>
+        </div>
+
+        <!-- Reemplazos -->
+        <div class="seccion">
+          <h4>🔄 Reemplazos de nodos</h4>
+          <div *ngFor="let rep of reemplazos; let i = index"
+            class="reemplazo-item">
+            <div>
+              <strong>{{ rep.producto_nombre }}</strong><br>
+              <span>Original: {{ rep.nodo_original_nombre }} → Nuevo: {{
+                rep.nodo_reemplazo_nombre }}</span>
+            </div>
+            <button class="btn-icon btn-editar"
+              (click)="editarReemplazo(i)">✏️</button>
+            <button class="btn-icon btn-eliminar"
+              (click)="eliminarReemplazo(i)">🗑️</button>
+          </div>
+          <button class="btn btn-sm btn-outline"
+            (click)="abrirBuscadorProducto('reemplazo')">+ Agregar
+            reemplazo</button>
+        </div>
+
+        <!-- Acciones generales -->
+        <div class="seccion">
+          <h4>✍️ Acciones realizadas</h4>
+          <textarea [(ngModel)]="accionesRealizadas"
+            placeholder="Describa las acciones realizadas durante el mantenimiento"
+            rows="3"></textarea>
+        </div>
+
+        <div class="seccion">
+          <h4>📝 Observaciones generales</h4>
+          <textarea [(ngModel)]="observacionesGenerales"
+            placeholder="Observaciones finales" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary"
+        (click)="cerrarModalEjecucion()">Cancelar</button>
+      <button class="btn btn-primary" (click)="finalizarEjecucion()">Finalizar
+        ejecución</button>
+    </div>
+  </div>
+</div>
+<!-- Modal para motivo y observaciones del reemplazo -->
+<div class="modal-overlay" *ngIf="mostrarModalMotivoReemplazo"
+  (click)="cerrarModalMotivoReemplazo()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">📝 Detalles del reemplazo</h3>
+      <button class="modal-cerrar"
+        (click)="cerrarModalMotivoReemplazo()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Motivo del reemplazo</label>
+        <textarea [(ngModel)]="motivoReemplazo" rows="2"
+          placeholder="Ej: equipo dañado, obsolescencia, etc."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Observaciones adicionales</label>
+        <textarea [(ngModel)]="observacionesReemplazo" rows="2"
+          placeholder="Notas adicionales"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary"
+        (click)="cerrarModalMotivoReemplazo()">Cancelar</button>
+      <button class="btn btn-primary"
+        (click)="confirmarReemplazo()">Confirmar</button>
+    </div>
+  </div>
+</div>
+<!-- Modal buscador de productos -->
+<div class="modal-overlay" *ngIf="mostrarBuscadorProducto"
+  (click)="mostrarBuscadorProducto = false">
+  <div class="modal-container modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">🔍 Seleccionar producto</h3>
+      <button class="modal-cerrar"
+        (click)="mostrarBuscadorProducto = false">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" [(ngModel)]="busquedaProducto"
+        placeholder="Buscar por nombre, part number"
+        (input)="buscarProductos()">
+      <div class="lista-productos">
+        <div *ngFor="let prod of productosDisponibles" class="producto-item"
+          (click)="seleccionarProducto(prod)">
+          <strong>{{ prod.nombre }}</strong> ({{ prod.part_number || 'sin part'
+          }}) - Stock: {{ prod.cantidad_actual }}
+        </div>
+      </div>
+      <div *ngIf="productoSeleccionado" class="producto-seleccionado">
+        <p>Seleccionado: {{ productoSeleccionado.nombre }}</p>
+        <label>Cantidad: <input type="number" [(ngModel)]="cantidadSeleccionada"
+            min="1"></label>
+        <label>Detalle: <input type="text" [(ngModel)]="detalleProducto"
+            placeholder="Detalle del uso"></label>
+        <label>Motivo: <input type="text" [(ngModel)]="motivoProducto"
+            placeholder="Motivo del consumo"></label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary"
+        (click)="mostrarBuscadorProducto = false">Cancelar</button>
+      <button class="btn btn-primary" (click)="agregarProducto()"
+        [disabled]="!productoSeleccionado">Agregar</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- Modal selección de nodo original (reemplazo) -->
+<div class="modal-overlay" *ngIf="mostrarBuscadorNodoOriginal"
+  (click)="cerrarBuscadorNodoOriginal()">
+  <div class="modal-container modal-arbol" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">🌳 Seleccione el nodo original (dañado)</h3>
+      <button class="modal-cerrar"
+        (click)="cerrarBuscadorNodoOriginal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="arbol-selector">
+        <ng-template #nodoRecursivo let-nodo>
+          <div class="nodo-item">
+            <div class="nodo-header">
+              <div class="nodo-icon" (click)="nodo.colapsado = !nodo.colapsado">
+                <span *ngIf="tieneHijos(nodo)" class="expand-icon">{{
+                  nodo.colapsado ? '▶' : '▼' }}</span>
+                <span *ngIf="!tieneHijos(nodo)" class="leaf-icon">•</span>
+              </div>
+              <div class="nodo-nombre" (click)="seleccionarNodoOriginal(nodo)">
+                {{ nodo.nombre }}
+                <span class="nodo-tipo">({{ nodo.tipo_nombre }})</span>
+              </div>
+            </div>
+            <div class="nodo-hijos" *ngIf="tieneHijos(nodo) && !nodo.colapsado">
+              <div *ngFor="let hijo of nodo.hijos; trackBy: trackByFn"
+                class="nodo-hijo">
+                <ng-container
+                  *ngTemplateOutlet="nodoRecursivo; context: { $implicit: hijo }"></ng-container>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+        <div *ngFor="let raiz of arbolNodos; trackBy: trackByFn">
+          <ng-container
+            *ngTemplateOutlet="nodoRecursivo; context: { $implicit: raiz }"></ng-container>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary"
+        (click)="cerrarBuscadorNodoOriginal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal selección de nodo reemplazo -->
+<div class="modal-overlay" *ngIf="mostrarBuscadorNodoReemplazo"
+  (click)="cerrarBuscadorNodoReemplazo()">
+  <div class="modal-container modal-arbol" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">🌳 Seleccione el nodo de reemplazo (nuevo)</h3>
+      <button class="modal-cerrar"
+        (click)="cerrarBuscadorNodoReemplazo()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="arbol-selector">
+        <ng-template #nodoRecursivo let-nodo>
+          <div class="nodo-item">
+            <div class="nodo-header">
+              <div class="nodo-icon" (click)="nodo.colapsado = !nodo.colapsado">
+                <span *ngIf="tieneHijos(nodo)" class="expand-icon">{{
+                  nodo.colapsado ? '▶' : '▼' }}</span>
+                <span *ngIf="!tieneHijos(nodo)" class="leaf-icon">•</span>
+              </div>
+              <div class="nodo-nombre" (click)="seleccionarNodoReemplazo(nodo)">
+                {{ nodo.nombre }}
+                <span class="nodo-tipo">({{ nodo.tipo_nombre }})</span>
+              </div>
+            </div>
+            <div class="nodo-hijos" *ngIf="tieneHijos(nodo) && !nodo.colapsado">
+              <div *ngFor="let hijo of nodo.hijos; trackBy: trackByFn"
+                class="nodo-hijo">
+                <ng-container
+                  *ngTemplateOutlet="nodoRecursivo; context: { $implicit: hijo }"></ng-container>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+        <div *ngFor="let raiz of arbolNodos; trackBy: trackByFn">
+          <ng-container
+            *ngTemplateOutlet="nodoRecursivo; context: { $implicit: raiz }"></ng-container>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary"
+        (click)="cerrarBuscadorNodoReemplazo()">Cancelar</button>
+    </div>
+  </div>
+</div>
