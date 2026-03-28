@@ -5,6 +5,51 @@
 
     </div>
     <div class="header__avatars">
+      <!-- Contenedor de órdenes pendientes (todas) -->
+<div class="ordenes-detalle-container">
+  <!-- Badge clickeable -->
+  <span class="badge ordenes-badge clickable" (click)="togglePanelOrdenes()">
+    <i class="fas fa-calendar-alt me-1"></i>
+    {{ textoOrdenes }}
+  </span>
+
+  <!-- Panel desplegable -->
+  <div class="detalle-panel" [class.show]="mostrarPanelOrdenes">
+    <div class="detalle-header">
+      <h6>Órdenes de trabajo pendientes</h6>
+      <small>Actualizado: {{ ultimaActualizacionOrdenes | date:'HH:mm:ss' }}</small>
+      <button class="close-btn" (click)="togglePanelOrdenes()">×</button>
+    </div>
+
+    <div class="detalle-lista" *ngIf="ordenesPendientes > 0; else sinOrdenes">
+      <div class="orden-item" *ngFor="let orden of ordenesLista">
+        <div class="orden-info">
+          <div class="orden-nodo">{{ orden.nodo_nombre }} ({{ orden.nodo_tipo }})</div>
+          <div class="orden-desc">{{ (orden.descripcion || '') | slice:0:50 }}{{ (orden.descripcion?.length ?? 0) > 50 ? '...' : '' }}</div>
+          <div class="orden-fecha">Creada: {{ orden.fecha_generacion | date:'dd/MM/yyyy HH:mm' }}</div>
+          <div class="orden-tipo" [ngClass]="orden.tipo === 'correctivo' ? 'tipo-correctivo' : 'tipo-preventivo'">
+            {{ orden.tipo | titlecase }}
+          </div>
+        </div>
+      </div>
+      <div *ngIf="ordenesLista.length === 0 && ordenesPendientes > 0" class="sin-ordenes">
+        Hay {{ ordenesPendientes }} órdenes pendientes. <a href="#" [routerLink]="['/mantenimientos']" (click)="togglePanelOrdenes()">Ver todas</a>
+      </div>
+    </div>
+
+    <ng-template #sinOrdenes>
+      <div class="sin-ordenes">
+        No hay órdenes de trabajo pendientes.
+      </div>
+    </ng-template>
+
+    <div class="detalle-footer">
+      <button class="btn-refresh" (click)="actualizarOrdenesPendientes()">
+        <i class="fas fa-sync-alt"></i> Actualizar
+      </button>
+    </div>
+  </div>
+</div>
      <!-- usuarios-online-detalle.component.html -->
 <div class="usuarios-detalle-container">
   <!-- Badge que es clickeable -->
@@ -49,47 +94,7 @@
     </div>
   </div>
 </div>
-<!-- Contenedor de órdenes preventivas pendientes -->
-<div class="ordenes-detalle-container">
-  <!-- Badge clickeable -->
-  <span class="badge ordenes-badge clickable" (click)="togglePanelOrdenes()">
-    <i class="fas fa-calendar-alt me-1"></i>
-    {{ textoOrdenes }}
-  </span>
 
-  <!-- Panel desplegable -->
-  <div class="detalle-panel" [class.show]="mostrarPanelOrdenes">
-    <div class="detalle-header">
-      <h6>Mantenimientos preventivos pendientes</h6>
-      <small>Actualizado: {{ ultimaActualizacionOrdenes | date:'HH:mm:ss' }}</small>
-      <button class="close-btn" (click)="togglePanelOrdenes()">×</button>
-    </div>
-
-    <div class="detalle-lista" *ngIf="ordenesPendientes > 0; else sinOrdenes">
-      <div class="orden-item" *ngFor="let orden of ordenesLista">
-        <div class="orden-info">
-          <div class="orden-nodo">{{ orden.nodo_nombre }} ({{ orden.nodo_tipo }})</div>
-          <div class="orden-desc">{{ (orden.descripcion || '') | slice:0:50 }}{{ (orden.descripcion?.length ?? 0) > 50 ? '...' : '' }}</div>  <div class="orden-fecha">Creada: {{ orden.fecha_generacion | date:'dd/MM/yyyy HH:mm' }}</div>
-        </div>
-      </div>
-      <div *ngIf="ordenesLista.length === 0 && ordenesPendientes > 0" class="sin-ordenes">
-        Hay {{ ordenesPendientes }} órdenes pendientes. <a href="#" [routerLink]="['/mantenimientos']" (click)="togglePanelOrdenes()">Ver todas</a>
-      </div>
-    </div>
-
-    <ng-template #sinOrdenes>
-      <div class="sin-ordenes">
-        No hay mantenimientos preventivos pendientes.
-      </div>
-    </ng-template>
-
-    <div class="detalle-footer">
-      <button class="btn-refresh" (click)="actualizarOrdenesPendientes()">
-        <i class="fas fa-sync-alt"></i> Actualizar
-      </button>
-    </div>
-  </div>
-</div>
       <!-- Segundo avatar - Añade un icono o imagen como disparador -->
       <div class="header__avatar">
         <div class="avatar-trigger">

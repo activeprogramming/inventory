@@ -16,9 +16,9 @@ import { OrdenesTrabajoService, OrdenTrabajo } from '../../services/ordenes-trab
   encapsulation: ViewEncapsulation.Emulated
 })
 export class Navegacion implements OnInit, AfterViewInit, OnDestroy {
-  ordenesPendientes: number = 0;
+ ordenesPendientes: number = 0;
 mostrarPanelOrdenes: boolean = false;
-ordenesLista: OrdenTrabajo[] = []; // opcional, para mostrar detalle
+ordenesLista: OrdenTrabajo[] = [];
 ultimaActualizacionOrdenes: Date = new Date();
   @ViewChild('sidenav') sidenavElement!: ElementRef;
   @ViewChild('grid') gridElement!: ElementRef;
@@ -151,29 +151,27 @@ ultimaActualizacionOrdenes: Date = new Date();
 
   // Método para obtener el texto del badge (ej. "Mantenimientos pendientes: 3")
 get textoOrdenes(): string {
-  if (this.ordenesPendientes === 0) return "Sin preventivos";
-  return `Preventivos pendientes: ${this.ordenesPendientes}`;
+  if (this.ordenesPendientes === 0) return "Sin órdenes pendientes";
+  return `Órdenes pendientes: ${this.ordenesPendientes}`;
 }
 
-// Método para actualizar la cantidad de órdenes preventivas pendientes
+// Método para actualizar la cantidad de órdenes pendientes
 async actualizarOrdenesPendientes() {
   try {
-    // Primero genera nuevas órdenes (si hay tareas vencidas)
+    // 1. Generar nuevas órdenes preventivas (si hay tareas vencidas)
     await this.ordenesService.generarOrdenesPreventivas();
 
-    // Luego obtén el conteo de órdenes preventivas con estado 'pendiente'
+    // 2. Contar todas las órdenes con estado 'pendiente' (cualquier tipo)
     const result = await this.ordenesService.getOrdenes({
-      tipo: 'preventivo',
       estado: 'pendiente',
-      limit: 1  // solo necesitamos el conteo, no los datos
+      limit: 1  // solo necesitamos el conteo
     });
     this.ordenesPendientes = result.count;
     this.ultimaActualizacionOrdenes = new Date();
 
-    // Opcional: también puedes cargar la lista completa si quieres mostrarlas en el panel
+    // 3. Cargar la lista para el panel (máximo 10)
     if (this.ordenesPendientes > 0) {
       const lista = await this.ordenesService.getOrdenes({
-        tipo: 'preventivo',
         estado: 'pendiente',
         limit: 10,
         page: 1
@@ -188,7 +186,6 @@ async actualizarOrdenesPendientes() {
     this.ordenesLista = [];
   }
 }
-
 // Método para alternar la visibilidad del panel de órdenes
 togglePanelOrdenes() {
   this.mostrarPanelOrdenes = !this.mostrarPanelOrdenes;
