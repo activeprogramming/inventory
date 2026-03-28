@@ -6,6 +6,7 @@ import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { UsuariosOnlineService } from '../../services/usuarios-online.service';
+import { OrdenesTrabajoService, OrdenTrabajo } from '../../services/ordenes-trabajo.service';
 
 @Component({
   selector: 'app-navegacion',
@@ -15,6 +16,10 @@ import { UsuariosOnlineService } from '../../services/usuarios-online.service';
   encapsulation: ViewEncapsulation.Emulated
 })
 export class Navegacion implements OnInit, AfterViewInit, OnDestroy {
+  ordenesPendientes: number = 0;
+mostrarPanelOrdenes: boolean = false;
+ordenesLista: OrdenTrabajo[] = []; // opcional, para mostrar detalle
+ultimaActualizacionOrdenes: Date = new Date();
   @ViewChild('sidenav') sidenavElement!: ElementRef;
   @ViewChild('grid') gridElement!: ElementRef;
   userName: string = 'Usuario';
@@ -37,7 +42,7 @@ export class Navegacion implements OnInit, AfterViewInit, OnDestroy {
     private usuariosOnlineService: UsuariosOnlineService,
     private renderer: Renderer2,
     private authService: AuthService,
-    private usuariosService: UsuariosService, // Inyectar el servicio
+    private usuariosService: UsuariosService,private ordenesService: OrdenesTrabajoService, // Inyectar el servicio
     private router: Router
   ) { }
   async cargarDatosUsuario() {
@@ -101,7 +106,10 @@ export class Navegacion implements OnInit, AfterViewInit, OnDestroy {
     this.cargarPrivilegios();
     this.cargarDatosUsuario();
     await this.actualizarTextoUsuarios();
-
+ await this.actualizarOrdenesPendientes();
+  setInterval(() => {
+    this.actualizarOrdenesPendientes();
+  }, 300000); 
     // Actualizar cada 30 segundos (30000ms) o cada 5 minutos (300000ms)
     setInterval(() => {
       this.actualizarTextoUsuarios();
@@ -133,6 +141,59 @@ export class Navegacion implements OnInit, AfterViewInit, OnDestroy {
 
     return `Hace ${Math.floor(horas / 24)} días`;
   }
+
+
+
+
+
+
+
+
+  // Método para obtener el texto del badge (ej. "Mantenimientos pendientes: 3")
+get textoOrdenes(): string {
+  if (this.ordenesPendientes === 0) return "Sin preventivos";
+  return `Preventivos pendientes: ${this.ordenesPendientes}`;
+}
+
+// Método para actualizar la cantidad de órdenes preventivas pendientes
+async actualizarOrdenesPendientes() {
+  try {
+    // Primero genera nuevas órdenes (si hay tareas vencidas)
+    await this.ordenesService.generarOrdenesPreventivas();
+
+    // Luego obtén el conteo de órdenes preventivas con estado 'pendiente'
+    const result = await this.ordenesService.getOrdenes({
+      tipo: 'preventivo',
+      estado: 'pendiente',
+      limit: 1  // solo necesitamos el conteo, no los datos
+    });
+    this.ordenesPendientes = result.count;
+    this.ultimaActualizacionOrdenes = new Date();
+
+    // Opcional: también puedes cargar la lista completa si quieres mostrarlas en el panel
+    if (this.ordenesPendientes > 0) {
+      const lista = await this.ordenesService.getOrdenes({
+        tipo: 'preventivo',
+        estado: 'pendiente',
+        limit: 10,
+        page: 1
+      });
+      this.ordenesLista = lista.data;
+    } else {
+      this.ordenesLista = [];
+    }
+  } catch (error) {
+    console.error('Error actualizando órdenes pendientes:', error);
+    this.ordenesPendientes = 0;
+    this.ordenesLista = [];
+  }
+}
+
+// Método para alternar la visibilidad del panel de órdenes
+togglePanelOrdenes() {
+  this.mostrarPanelOrdenes = !this.mostrarPanelOrdenes;
+}
+
 
   // Cerrar al hacer clic fuera
   @HostListener('document:click', ['$event'])

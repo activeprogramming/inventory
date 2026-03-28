@@ -12,6 +12,7 @@ import { ChangeDetectorRef } from '@angular/core';
   styleUrls: ['./nodos.css']
 })
 export class Nodos implements OnInit {
+  filtroNombre: string = '';
   // Lista de nodos raíz (para la tabla)
   nodosRaiz: Nodo[] = [];
   loading: boolean = false;
@@ -63,7 +64,16 @@ export class Nodos implements OnInit {
     await this.cargarTipos();
     await this.cargarNodosRaiz();
   }
-
+get nodosRaizFiltrados(): Nodo[] {
+  if (!this.filtroNombre.trim()) {
+    return this.nodosRaiz;
+  }
+  const term = this.filtroNombre.toLowerCase();
+  return this.nodosRaiz.filter(nodo =>
+    nodo.nombre.toLowerCase().includes(term) ||
+    (nodo.descripcion && nodo.descripcion.toLowerCase().includes(term))
+  );
+}
   async cargarTipos() {
     try {
       const { data } = await this.tipoNodosService.getTipos({ limit: 100 });

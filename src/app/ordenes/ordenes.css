@@ -555,4 +555,30 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 2px solid #e2e8f0;
+}.nodo-detalles {
+  font-size: 11px;
+  color: #5b6e8c;
+  font-weight: normal;
+  margin-left: 4px;
+}.seccion-tareas {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+.seccion-tareas h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #0a2540;
+}
+.tarea-item {
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.sin-tareas {
+  font-style: italic;
+  color: #64748b;
+  margin-top: 12px;
 }

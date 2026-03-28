@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { OrdenesTrabajoService, OrdenTrabajo } from '../../services/ordenes-trabajo.service';
 import { NodosService, Nodo } from '../../services/nodos.service';
 import { IncidenciasService } from '../../services/incidencias.service';
-
+import { TareasService, Tarea } from '../../services/tareas.service';
 @Component({
   selector: 'app-ordenes',
   standalone: true,
@@ -13,6 +13,7 @@ import { IncidenciasService } from '../../services/incidencias.service';
   styleUrls: ['./ordenes.css']
 })
 export class Ordenes implements OnInit {
+  tareasDeOrden: Tarea[] = [];
   // Propiedades adicionales
 nodoDetalle: Nodo | null = null;
 // Dentro de la clase Ordenes, añade este método:
@@ -135,9 +136,27 @@ cerrarModalIncidencia() {
     private ordenesService: OrdenesTrabajoService,
     private nodosService: NodosService,
     private incidenciasService: IncidenciasService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+  private tareasService: TareasService
   ) {}
-
+async cargarTareasDeOrden(orden: OrdenTrabajo) {
+  if (orden.tipo !== 'preventivo') {
+    this.tareasDeOrden = [];
+    return;
+  }
+  try {
+    const asignaciones = await this.tareasService.getTareasByNodo(orden.nodo_id);
+    const tareasCompletas: Tarea[] = [];
+    for (const asig of asignaciones) {
+      const tarea = await this.tareasService.getTareaById(asig.tarea_id);
+      tareasCompletas.push(tarea);
+    }
+    this.tareasDeOrden = tareasCompletas;
+  } catch (error) {
+    console.error('Error cargando tareas de la orden:', error);
+    this.tareasDeOrden = [];
+  }
+}
   async ngOnInit() {
     await this.cargarOrdenes();
     await this.cargarArbolNodos();
@@ -171,21 +190,30 @@ cerrarModalIncidencia() {
       this.loading = false;
     }
   }
-
-  async cargarArbolNodos() {
-    try {
-      const raices = await this.nodosService.getNodosRaiz();
-      const arbolesCompletos: Nodo[] = [];
-      for (const raiz of raices) {
-        const arbol = await this.nodosService.getArbol(raiz.id);
-        arbolesCompletos.push(arbol);
-      }
-      this.arbolNodos = arbolesCompletos;
-      this.asignarColapsado(this.arbolNodos);
-    } catch (error) {
-      console.error('Error cargando árbol de nodos:', error);
+private filtrarActivos(nodos: Nodo[]): Nodo[] {
+  return nodos
+    .filter(nodo => nodo.estado_activo === true)
+    .map(nodo => ({
+      ...nodo,
+      hijos: nodo.hijos ? this.filtrarActivos(nodo.hijos) : []
+    }));
+}
+ async cargarArbolNodos() {
+  try {
+    const raices = await this.nodosService.getNodosRaiz();
+    const arbolesCompletos: Nodo[] = [];
+    for (const raiz of raices) {
+      const arbol = await this.nodosService.getArbol(raiz.id);
+      arbolesCompletos.push(arbol);
     }
+    // Filtrar nodos inactivos
+    const arbolesActivos = this.filtrarActivos(arbolesCompletos);
+    this.arbolNodos = arbolesActivos;
+    this.asignarColapsado(this.arbolNodos);
+  } catch (error) {
+    console.error('Error cargando árbol de nodos:', error);
   }
+}
 
   private asignarColapsado(nodos: Nodo[]) {
     nodos.forEach(nodo => {
@@ -313,6 +341,7 @@ abrirModalDetalle(orden: OrdenTrabajo) {
   this.ordenSeleccionada = orden;
   // Buscar el nodo completo con sus campos extra
   this.nodoDetalle = this.buscarNodoEnArbol(orden.nodo_id);
+  this.cargarTareasDeOrden(orden);
   this.mostrarModalDetalle = true;
 }
  cerrarModalDetalle() {

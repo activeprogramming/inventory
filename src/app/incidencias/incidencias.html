@@ -42,49 +42,44 @@
 </div>
   </div>
 
-  <!-- Filtros -->
   <section class="filtros-section">
-    <div class="filtros-header">
-      <h2 class="titulo-seccion">🔍 Filtros de búsqueda</h2>
+  <div class="filtros-header">
+    <h2 class="titulo-seccion">🔍 Filtros de búsqueda</h2>
+  </div>
+  <div class="filtros-grid">
+    <div class="filtro-item">
+      <label>Búsqueda</label>
+      <input type="text" [(ngModel)]="filtros.search"
+             placeholder="Buscar por descripción, detalles..."
+             (keyup.enter)="aplicarFiltros()">
     </div>
-    <div class="filtros-grid">
-      <div class="filtro-item">
-        <label>Búsqueda</label>
-        <input type="text" [(ngModel)]="filtros.search"
-          placeholder="Buscar por descripción, detalles..."
-          (keyup.enter)="aplicarFiltros()">
-      </div>
-      <div class="filtro-item">
-        <label>Estado</label>
-        <select [(ngModel)]="filtros.estado">
-          <option value>Todos</option>
-          <option *ngFor="let e of estadosDisponibles" [value]="e.value">{{
-            e.label }}</option>
-        </select>
-      </div>
-      <div class="filtro-item">
-        <label>Prioridad</label>
-        <select [(ngModel)]="filtros.prioridad">
-          <option value>Todas</option>
-          <option *ngFor="let p of prioridadesDisponibles" [value]="p.value">{{
-            p.label }}</option>
-        </select>
-      </div>
-      <div class="filtro-item">
-        <label>Desde</label>
-        <input type="date" [(ngModel)]="filtros.fecha_desde">
-      </div>
-      <div class="filtro-item">
-        <label>Hasta</label>
-        <input type="date" [(ngModel)]="filtros.fecha_hasta">
-      </div>
+    <div class="filtro-item">
+      <label>Estado</label>
+      <select [(ngModel)]="filtros.estado" (change)="aplicarFiltros()">
+        <option value="">Todos</option>
+        <option *ngFor="let e of estadosDisponibles" [value]="e.value">{{ e.label }}</option>
+      </select>
     </div>
-    <div class="filtros-actions">
-      <button class="btn btn-apply" (click)="aplicarFiltros()">Aplicar
-        filtros</button>
-      <button class="btn btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+    <div class="filtro-item">
+      <label>Prioridad</label>
+      <select [(ngModel)]="filtros.prioridad" (change)="aplicarFiltros()">
+        <option value="">Todas</option>
+        <option *ngFor="let p of prioridadesDisponibles" [value]="p.value">{{ p.label }}</option>
+      </select>
     </div>
-  </section>
+    <div class="filtro-item">
+      <label>Desde</label>
+      <input type="date" [(ngModel)]="filtros.fecha_desde" (change)="aplicarFiltros()">
+    </div>
+    <div class="filtro-item">
+      <label>Hasta</label>
+      <input type="date" [(ngModel)]="filtros.fecha_hasta" (change)="aplicarFiltros()">
+    </div>
+  </div>
+  <div class="filtros-actions">
+    <button class="btn btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+  </div>
+</section>
 
   <!-- Tabla de incidencias -->
   <section class="tabla-section">
@@ -230,9 +225,13 @@
           <span *ngIf="!nodo.hijos?.length" class="leaf-icon">•</span>
         </div>
         <div class="nodo-nombre" [class.selectable]="nodo.es_equipo" (click)="seleccionarNodo(nodo)">
-          {{ nodo.nombre }}
-          <span class="nodo-tipo">({{ nodo.tipo_nombre }})</span>
-        </div>
+  {{ nodo.nombre }}
+  <span class="nodo-tipo">({{ nodo.tipo_nombre }})</span>
+  <span *ngIf="nodo.es_equipo && nodo.campos_extra" class="nodo-detalles">
+    <span *ngIf="nodo.campos_extra.part_number"> - PN: {{ nodo.campos_extra.part_number }}</span>
+    <span *ngIf="nodo.campos_extra.serial_number"> - SN: {{ nodo.campos_extra.serial_number }}</span>
+  </span>
+</div>
       </div>
       <div class="nodo-hijos" *ngIf="nodo.hijos?.length && !nodo.colapsado">
         <div *ngFor="let hijo of nodo.hijos; trackBy: trackByFn" class="nodo-hijo">

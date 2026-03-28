@@ -39,9 +39,8 @@ export interface Nodo {
   providedIn: 'root'
 })
 export class NodosService {
-  crearNodoCompleto(nuevoNodoData: { parent_id: number | null; tipo_id: number; nombre: string; part_number: string | null; serial_number: string | null; codigo: string | null; criticidad: "BAJA" | "MEDIA" | "ALTA" | "CRÍTICO"; cantidad_actual: number; estanteria: string | null; precio: number | null; fecha_instalacion: string; observaciones_extra: string | null; estado: string; }) {
-    throw new Error('Method not implemented.');
-  }
+  
+  
 async desactivarNodo(id: number, motivo?: string): Promise<void> {
   // Solo actualiza el estado_activo a false
   const { error } = await supabase

@@ -104,23 +104,38 @@ nodoDetalle: Nodo | null = null;
       this.loading = false;
     }
   }
-  async cargarArbolEquipos() {
-    try {
-      console.log('📡 Cargando árbol completo...');
-      const raices = await this.nodosService.getNodosRaiz();
-      const arbolesCompletos: Nodo[] = [];
-      for (const raiz of raices) {
-        const arbol = await this.nodosService.getArbol(raiz.id);
-        arbolesCompletos.push(arbol);
-      }
-      // Guardamos el árbol completo (sin filtrar)
-      this.arbolEquipos = arbolesCompletos;
-      this.asignarColapsado(this.arbolEquipos);
-      console.log('Árbol cargado:', this.arbolEquipos);
-    } catch (error) {
-      console.error('Error cargando árbol:', error);
+
+
+
+ // Método auxiliar para eliminar nodos inactivos del árbol
+private filtrarActivos(nodos: Nodo[]): Nodo[] {
+  return nodos
+    .filter(nodo => nodo.estado_activo === true)
+    .map(nodo => ({
+      ...nodo,
+      hijos: nodo.hijos ? this.filtrarActivos(nodo.hijos) : []
+    }));
+}
+
+async cargarArbolEquipos() {
+  try {
+    console.log('📡 Cargando árbol completo...');
+    const raices = await this.nodosService.getNodosRaiz();
+    const arbolesCompletos: Nodo[] = [];
+    for (const raiz of raices) {
+      const arbol = await this.nodosService.getArbol(raiz.id);
+      arbolesCompletos.push(arbol);
     }
+    // Filtrar nodos inactivos
+    const arbolesActivos = this.filtrarActivos(arbolesCompletos);
+    // Guardamos el árbol ya filtrado (solo activos)
+    this.arbolEquipos = arbolesActivos;
+    this.asignarColapsado(this.arbolEquipos);
+    console.log('Árbol cargado (solo activos):', this.arbolEquipos);
+  } catch (error) {
+    console.error('Error cargando árbol:', error);
   }
+}
   private asignarColapsado(nodos: Nodo[]) {
     nodos.forEach(nodo => {
       nodo.colapsado = false;

@@ -14,13 +14,14 @@
   <!-- Tabla de nodos raíz -->
   <section class="tabla-section">
     <div class="tabla-header">
-      <h2 class="titulo-seccion"> </h2>
-      <div class="tabla-actions">
-        <button class="btn btn-primary" (click)="crearNodoRaiz()">
-          <span class="icono-btn">➕</span> Nuevo Nodo Principal
-        </button>
-      </div>
-    </div>
+  <h2 class="titulo-seccion">Nodos Principales (Raíz)</h2>
+  <div class="tabla-actions">
+    <input type="text" [(ngModel)]="filtroNombre" (input)="filtroNombre = filtroNombre" placeholder="Buscar por nombre o descripción..." class="filtro-busqueda">
+    <button class="btn btn-primary" (click)="crearNodoRaiz()">
+      <span class="icono-btn">➕</span> Nuevo Nodo Raíz
+    </button>
+  </div>
+</div>
 
     <div class="tabla-container">
       <table class="nodos-tabla">
@@ -36,7 +37,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let nodo of nodosRaiz" class="registro-fila">
+          <tr *ngFor="let nodo of nodosRaizFiltrados" class="registro-fila">
             <td class="col-id">{{ nodo.id }}</td>
             <td class="col-nombre">{{ nodo.nombre }}</td>
             <td class="col-tipo">
@@ -59,7 +60,7 @@
                 (click)="eliminarNodoRaiz(nodo)" title="Eliminar">🗑️</button>
             </td>
           </tr>
-          <tr *ngIf="!loading && nodosRaiz.length === 0">
+          <tr *ngIf="!loading && nodosRaizFiltrados.length === 0">
             <td colspan="7" class="sin-datos">
               <div class="sin-datos-icon">📭</div>
               <div>No hay nodos raíz configurados.</div>

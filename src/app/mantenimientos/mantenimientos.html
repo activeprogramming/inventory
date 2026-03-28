@@ -11,32 +11,30 @@
   </header>
 
   <!-- Filtros -->
-  <section class="filtros-section">
-    <div class="filtros-header">
-      <h2 class="titulo-seccion">🔍 Filtros de búsqueda</h2>
+ <section class="filtros-section">
+  <div class="filtros-header">
+    <h2 class="titulo-seccion">🔍 Filtros de búsqueda</h2>
+  </div>
+  <div class="filtros-grid">
+    <div class="filtro-item">
+      <label>Búsqueda</label>
+      <input type="text" [(ngModel)]="filtros.search"
+             placeholder="Buscar por descripción, código..."
+             (keyup.enter)="aplicarFiltros()">
     </div>
-    <div class="filtros-grid">
-      <div class="filtro-item">
-        <label>Búsqueda</label>
-        <input type="text" [(ngModel)]="filtros.search"
-          placeholder="Buscar por descripción, código..."
-          (keyup.enter)="aplicarFiltros()">
-      </div>
-      <div class="filtro-item">
-        <label>Estado</label>
-        <select [(ngModel)]="filtros.estado">
-          <option value="pendiente">Pendiente</option>
-          <option value="en_proceso">En proceso</option>
-          <option value="todos">Todos</option>
-        </select>
-      </div>
+    <div class="filtro-item">
+      <label>Estado</label>
+      <select [(ngModel)]="filtros.estado" (change)="aplicarFiltros()">
+        <option value="pendiente">Pendiente</option>
+        <option value="en_proceso">En proceso</option>
+        <option value="todos">Todos</option>
+      </select>
     </div>
-    <div class="filtros-actions">
-      <button class="btn btn-apply" (click)="aplicarFiltros()">Aplicar
-        filtros</button>
-      <button class="btn btn-clear" (click)="limpiarFiltros()">Limpiar</button>
-    </div>
-  </section>
+  </div>
+  <div class="filtros-actions">
+    <button class="btn btn-clear" (click)="limpiarFiltros()">Limpiar</button>
+  </div>
+</section>
 
   <!-- Tabla de órdenes -->
   <section class="tabla-section">
@@ -81,9 +79,12 @@
               <button *ngIf="ord.estado === 'pendiente'" class="btn-icon"
                 (click)="iniciarEjecucion(ord)"
                 title="Iniciar ejecución">▶️</button>
+
               <button *ngIf="ord.estado === 'en_proceso'" class="btn-icon"
-                (click)="continuarEjecucion(ord.id, ord)"
+                (click)="continuarEjecucion(ord)"
                 title="Continuar ejecución">✏️</button>
+              <button class="btn-icon" (click)="verDetalleOrden(ord)"
+                title="Ver detalles de orden">📄</button>
               <button class="btn-icon" (click)="verEjecuciones(ord)"
                 title="Ver ejecuciones">📋</button>
             </td>
@@ -126,47 +127,115 @@
       <div *ngIf="ejecucionesDetalladas.length === 0" class="sin-datos">No hay
         ejecuciones registradas para esta orden</div>
       <div *ngFor="let detalle of ejecucionesDetalladas" class="ejecucion-item">
-        <div><strong>Inicio:</strong> {{
-          formatearFecha(detalle.ejecucion.fecha_ejecucion_inicio!) }}</div>
-        <div><strong>Fin:</strong> {{
-          formatearFecha(detalle.ejecucion.fecha_ejecucion_fin!) || 'En curso'
-          }}</div>
-        <div><strong>Realizada por:</strong> {{ detalle.ejecucion.realizada_por
-          || '—' }}</div>
-        <div><strong>Acciones:</strong> {{ detalle.ejecucion.acciones || '—'
-          }}</div>
-        <div
-          *ngIf="detalle.ejecucion.observaciones"><strong>Observaciones:</strong>
-          {{ detalle.ejecucion.observaciones }}</div>
-
-        <div *ngIf="detalle.tareas && detalle.tareas.length">
-          <strong>Tareas realizadas:</strong>
-          <ul>
-            <li *ngFor="let t of detalle.tareas">Tarea ID {{ t.tarea_id }} - {{
-              t.observaciones || 'sin observaciones' }}</li>
-          </ul>
+        <div class="ejecucion-cabecera">
+          <div><strong>Inicio:</strong> {{
+            formatearFecha(detalle.ejecucion.fecha_ejecucion_inicio!) }}</div>
+          <div><strong>Fin:</strong> {{
+            formatearFecha(detalle.ejecucion.fecha_ejecucion_fin!) || 'En curso'
+            }}</div>
+          <div><strong>Realizada por:</strong> {{
+            detalle.ejecucion.realizada_por || '—' }}</div>
+          <div><strong>Acciones generales:</strong> {{
+            detalle.ejecucion.acciones || '—' }}</div>
+          <div
+            *ngIf="detalle.ejecucion.observaciones"><strong>Observaciones:</strong>
+            {{ detalle.ejecucion.observaciones }}</div>
+        </div>
+        <div *ngIf="detalle.nodo" class="info-nodo">
+          <div><strong>Nodo:</strong> {{ detalle.nodo.nombre }} ({{
+            detalle.nodo.tipo_nombre }})</div>
+          <div *ngIf="detalle.nodo.campos_extra" class="info-tecnica"
+            style="margin-top: 8px;">
+            <div *ngIf="detalle.nodo.campos_extra.part_number"><strong>Part
+                Number:</strong> {{ detalle.nodo.campos_extra.part_number
+              }}</div>
+            <div
+              *ngIf="detalle.nodo.campos_extra.serial_number"><strong>Serial:</strong>
+              {{ detalle.nodo.campos_extra.serial_number }}</div>
+            <div
+              *ngIf="detalle.nodo.campos_extra.codigo"><strong>Código:</strong>
+              {{ detalle.nodo.campos_extra.codigo }}</div>
+            <div
+              *ngIf="detalle.nodo.campos_extra.criticidad"><strong>Criticidad:</strong>
+              {{ detalle.nodo.campos_extra.criticidad }}</div>
+            <div
+              *ngIf="detalle.nodo.campos_extra.cantidad_actual"><strong>Cantidad:</strong>
+              {{ detalle.nodo.campos_extra.cantidad_actual }}</div>
+            <div
+              *ngIf="detalle.nodo.campos_extra.estanteria"><strong>Estantería:</strong>
+              {{ detalle.nodo.campos_extra.estanteria }}</div>
+            <div
+              *ngIf="detalle.nodo.campos_extra.precio"><strong>Precio:</strong>
+              {{ detalle.nodo.campos_extra.precio | currency }}</div>
+            <div
+              *ngIf="detalle.nodo.campos_extra.fecha_instalacion"><strong>Fecha
+                instalación:</strong> {{
+              detalle.nodo.campos_extra.fecha_instalacion | date:'dd/MM/yyyy'
+              }}</div>
+            <div *ngIf="detalle.nodo.campos_extra.estado"><strong>Estado
+                técnico:</strong> {{ detalle.nodo.campos_extra.estado }}</div>
+            <div
+              *ngIf="detalle.nodo.campos_extra.observaciones"><strong>Observaciones:</strong>
+              {{ detalle.nodo.campos_extra.observaciones }}</div>
+          </div>
         </div>
 
-        <div *ngIf="detalle.productos && detalle.productos.length">
-          <strong>Productos consumidos:</strong>
-          <ul>
-            <li *ngFor="let p of detalle.productos">{{ p.producto_nombre }} x{{
-              p.cantidad }} - {{ p.detalle || '' }} - Motivo: {{ p.motivo || ''
-              }}</li>
-          </ul>
+        <!-- Tareas realizadas -->
+        <!-- Tareas realizadas -->
+        <div *ngIf="detalle.tareas && detalle.tareas.length"
+          class="seccion-detalle">
+          <div class="detalle-titulo">📋 Tareas realizadas</div>
+          <div *ngFor="let t of detalle.tareas" class="item-detalle">
+            <div><strong>{{ t.tarea_nombre || 'ID '+t.tarea_id }}</strong></div>
+            <div *ngIf="t.tarea_descripcion">Descripción: {{ t.tarea_descripcion
+              }}</div>
+            <div *ngIf="t.tarea_intervalo">Intervalo: cada {{ t.tarea_intervalo
+              }} mes(es)</div>
+            <div *ngIf="t.tarea_duracion">Duración estimada: {{ t.tarea_duracion
+              }} min</div>
+            <div *ngIf="t.tarea_detalles">Detalles: {{ t.tarea_detalles }}</div>
+            <div><strong>Finalizada:</strong> {{
+              formatearFecha(t.fecha_ejecucion_fin!) || '—' }}</div>
+            <div *ngIf="t.acciones"><strong>Acciones realizadas:</strong> {{
+              t.acciones }}</div>
+            <div *ngIf="t.observaciones"><strong>Observaciones:</strong> {{
+              t.observaciones }}</div>
+          </div>
         </div>
 
-        <div *ngIf="detalle.reemplazos && detalle.reemplazos.length">
-          <strong>Reemplazos realizados:</strong>
-          <ul>
-            <li *ngFor="let r of detalle.reemplazos">
-              {{ r.producto_nombre }}: {{ r.nodo_original_nombre }} → {{
-              r.nodo_reemplazo_nombre }}<br>
-              <span *ngIf="r.motivo">Motivo: {{ r.motivo }}</span><br>
-              <span *ngIf="r.observaciones">Observaciones: {{ r.observaciones
-                }}</span>
-            </li>
-          </ul>
+        <!-- Productos consumidos -->
+        <div *ngIf="detalle.productos && detalle.productos.length"
+          class="seccion-detalle">
+          <div class="detalle-titulo">🧴 Productos consumidos</div>
+          <div *ngFor="let p of detalle.productos" class="item-detalle">
+            <div><strong>{{ p.producto_nombre }}</strong> x{{ p.cantidad
+              }}</div>
+            <div *ngIf="p.producto_part_number">Part Number: {{
+              p.producto_part_number }}</div>
+            <div *ngIf="p.producto_serial_number">Serial: {{
+              p.producto_serial_number }}</div>
+            <div *ngIf="p.detalle">Detalle: {{ p.detalle }}</div>
+            <div *ngIf="p.motivo">Motivo: {{ p.motivo }}</div>
+          </div>
+        </div>
+
+        <!-- Reemplazos realizados -->
+        <div *ngIf="detalle.reemplazos && detalle.reemplazos.length"
+          class="seccion-detalle">
+          <div class="detalle-titulo">🔄 Reemplazos realizados</div>
+          <div *ngFor="let r of detalle.reemplazos" class="item-detalle">
+            <div><strong>producto_nombre → nodo_original_nombre →
+                nodo_reemplazo_nombre </strong></div>
+            <div><strong>{{ r.producto_nombre }}</strong> — {{
+              r.nodo_original_nombre }} → {{ r.nodo_reemplazo_nombre }}</div>
+            <div *ngIf="r.producto_part_number">Part Number: {{
+              r.producto_part_number }}</div>
+            <div *ngIf="r.producto_serial_number">Serial: {{
+              r.producto_serial_number }}</div>
+            <div *ngIf="r.motivo">Motivo: {{ r.motivo }}</div>
+            <div *ngIf="r.observaciones">Observaciones: {{ r.observaciones
+              }}</div>
+          </div>
         </div>
         <hr>
       </div>
@@ -177,6 +246,68 @@
     </div>
   </div>
 </div>
+
+
+
+
+<!-- Modal Detalle de Orden -->
+<div class="modal-overlay" *ngIf="mostrarModalDetalleOrden && ordenDetalle" (click)="cerrarModalDetalleOrden()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-titulo">📄 Detalle de orden #{{ ordenDetalle.id }}</h3>
+      <button class="modal-cerrar" (click)="cerrarModalDetalleOrden()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="detalles-grid">
+        <div class="detalle-item"><span class="detalle-label">ID:</span> {{ ordenDetalle.id }}</div>
+        <div class="detalle-item"><span class="detalle-label">Tipo:</span> {{ ordenDetalle.tipo | titlecase }}</div>
+        <div class="detalle-item"><span class="detalle-label">Estado:</span> {{ ordenDetalle.estado | titlecase }}</div>
+        <div class="detalle-item"><span class="detalle-label">Fecha generación:</span> {{ formatearFecha(ordenDetalle.fecha_generacion) }}</div>
+        <div class="detalle-item"><span class="detalle-label">Nodo:</span> {{ ordenDetalle.nodo_nombre }} ({{ ordenDetalle.nodo_tipo }})</div>
+        <div class="detalle-item full-width" *ngIf="nodoDetalleOrden?.campos_extra">
+          <span class="detalle-label">Información técnica:</span>
+          <div class="info-tecnica">
+            <div *ngIf="nodoDetalleOrden?.campos_extra?.part_number">Part Number: {{ nodoDetalleOrden?.campos_extra?.part_number }}</div>
+            <div *ngIf="nodoDetalleOrden?.campos_extra?.serial_number">Serial: {{ nodoDetalleOrden?.campos_extra?.serial_number }}</div>
+            <div *ngIf="nodoDetalleOrden?.campos_extra?.codigo">Código: {{ nodoDetalleOrden?.campos_extra?.codigo }}</div>
+            <div *ngIf="nodoDetalleOrden?.campos_extra?.criticidad">Criticidad: {{ nodoDetalleOrden?.campos_extra?.criticidad | titlecase }}</div>
+            <div *ngIf="nodoDetalleOrden?.campos_extra?.cantidad_actual">Cantidad: {{ nodoDetalleOrden?.campos_extra?.cantidad_actual }}</div>
+            <div *ngIf="nodoDetalleOrden?.campos_extra?.estanteria">Estantería: {{ nodoDetalleOrden?.campos_extra?.estanteria }}</div>
+            <div *ngIf="nodoDetalleOrden?.campos_extra?.precio">Precio: {{ nodoDetalleOrden?.campos_extra?.precio | currency }}</div>
+            <div *ngIf="nodoDetalleOrden?.campos_extra?.fecha_instalacion">Fecha instalación: {{ nodoDetalleOrden?.campos_extra?.fecha_instalacion | date:'dd/MM/yyyy' }}</div>
+            <div *ngIf="nodoDetalleOrden?.campos_extra?.estado">Estado técnico: {{ nodoDetalleOrden?.campos_extra?.estado }}</div>
+            <div *ngIf="nodoDetalleOrden?.campos_extra?.observaciones">Observaciones: {{ nodoDetalleOrden?.campos_extra?.observaciones }}</div>
+          </div>
+        </div>
+        <div class="detalle-item full-width">
+          <span class="detalle-label">Ubicación completa:</span>
+          <div class="info-tecnica">{{ obtenerRutaNodo(ordenDetalle.nodo_id) }}</div>
+        </div>
+        <div class="detalle-item full-width"><span class="detalle-label">Descripción:</span> {{ ordenDetalle.descripcion || '—' }}</div>
+        <div class="detalle-item"><span class="detalle-label">Técnico asignado:</span> {{ ordenDetalle.tecnico_asignado || '—' }}</div>
+        <div class="detalle-item"><span class="detalle-label">Última actualización:</span> {{ formatearFecha(ordenDetalle.updated_at) }}</div>
+      </div>
+      <!-- Tareas asignadas (solo para preventivo) -->
+      <div *ngIf="ordenDetalle.tipo === 'preventivo'" class="seccion-tareas">
+        <h4>📋 Tareas preventivas asignadas</h4>
+        <div *ngIf="tareasOrden.length === 0" class="sin-tareas">No hay tareas asignadas a este nodo.</div>
+        <div *ngFor="let tarea of tareasOrden" class="tarea-item">
+          <div><strong>Nombre:</strong> {{ tarea.nombre }}</div>
+          <div *ngIf="tarea.descripcion"><strong>Descripción:</strong> {{ tarea.descripcion }}</div>
+          <div *ngIf="tarea.detalles"><strong>Detalles:</strong> {{ tarea.detalles }}</div>
+          <div *ngIf="tarea.intervalo_ejecucion_meses"><strong>Intervalo:</strong> cada {{ tarea.intervalo_ejecucion_meses }} mes(es)</div>
+          <div *ngIf="tarea.duracion_estimada_minutos"><strong>Duración estimada:</strong> {{ tarea.duracion_estimada_minutos }} min</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="cerrarModalDetalleOrden()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+
 <!-- Modal de ejecución de mantenimiento -->
 <div class="modal-overlay" *ngIf="mostrarModalEjecucion && ordenSeleccionada"
   (click)="cerrarModalEjecucion()">
@@ -196,13 +327,51 @@
           ordenSeleccionada.nodo_tipo }})</p>
         <p><strong>Ubicación:</strong> {{
           obtenerRutaNodo(ordenSeleccionada.nodo_id) }}</p>
+        <div *ngIf="nodoDetalle?.campos_extra" class="info-tecnica"
+          style="margin-top: 8px;">
+          <div *ngIf="nodoDetalle?.campos_extra?.part_number"><strong>Part
+              Number:</strong> {{ nodoDetalle?.campos_extra?.part_number
+            }}</div>
+          <div
+            *ngIf="nodoDetalle?.campos_extra?.serial_number"><strong>Serial:</strong>
+            {{ nodoDetalle?.campos_extra?.serial_number }}</div>
+          <div
+            *ngIf="nodoDetalle?.campos_extra?.codigo"><strong>Código:</strong>
+            {{ nodoDetalle?.campos_extra?.codigo }}</div>
+          <div
+            *ngIf="nodoDetalle?.campos_extra?.criticidad"><strong>Criticidad:</strong>
+            {{ nodoDetalle?.campos_extra?.criticidad }}</div>
+          <div
+            *ngIf="nodoDetalle?.campos_extra?.cantidad_actual"><strong>Cantidad:</strong>
+            {{ nodoDetalle?.campos_extra?.cantidad_actual }}</div>
+          <div
+            *ngIf="nodoDetalle?.campos_extra?.estanteria"><strong>Estantería:</strong>
+            {{ nodoDetalle?.campos_extra?.estanteria }}</div>
+          <div
+            *ngIf="nodoDetalle?.campos_extra?.precio"><strong>Precio:</strong>
+            {{ nodoDetalle?.campos_extra?.precio | currency }}</div>
+          <div
+            *ngIf="nodoDetalle?.campos_extra?.fecha_instalacion"><strong>Fecha
+              instalación:</strong> {{
+            nodoDetalle?.campos_extra?.fecha_instalacion | date:'dd/MM/yyyy'
+            }}</div>
+          <div *ngIf="nodoDetalle?.campos_extra?.estado"><strong>Estado
+              técnico:</strong> {{ nodoDetalle?.campos_extra?.estado }}</div>
+          <div
+            *ngIf="nodoDetalle?.campos_extra?.observaciones"><strong>Observaciones:</strong>
+            {{ nodoDetalle?.campos_extra?.observaciones }}</div>
+        </div>
         <p><strong>Descripción:</strong> {{ ordenSeleccionada.descripcion || '—'
           }}</p>
         <p><strong>Tipo:</strong> {{ ordenSeleccionada.tipo | titlecase }}</p>
       </div>
-
+      <div *ngIf="ejecucionActual?.fecha_ejecucion_inicio" class="info-inicio">
+        <strong>Inicio de ejecución:</strong> {{
+        ejecucionActual?.fecha_ejecucion_inicio | date:'dd/MM/yyyy HH:mm' }}
+      </div>
       <!-- Pestañas o secciones -->
       <div class="ejecucion-tabs">
+        <!-- Tareas (solo preventivo) -->
         <!-- Tareas (solo preventivo) -->
         <div
           *ngIf="ordenSeleccionada.tipo === 'preventivo' && tareasPreventivas.length > 0"
@@ -211,12 +380,24 @@
           <div *ngFor="let tarea of tareasPreventivas; let i = index"
             class="tarea-item">
             <label class="tarea-checkbox">
-              <input type="checkbox" [ngModel]="tarea.completada" (ngModelChange)="onTareaCompletadaChange(i, $event)">
+              <input type="checkbox"
+                [checked]="tarea.completada"
+                [disabled]="tarea.completada"
+                (change)="onTareaCompletadaChange(i, $event.target.checked)">
               <strong>{{ tarea.nombre }}</strong> ({{
               tarea.duracion_estimada_minutos }} min)
             </label>
-            <div *ngIf="tarea.completada">
+            <div>
+              <label>Acciones realizadas</label>
+              <textarea [(ngModel)]="tarea.acciones"
+                [readonly]="tarea.completada"
+                placeholder="Describa las acciones ejecutadas"
+                rows="2"></textarea>
+            </div>
+            <div>
+              <label>Observaciones</label>
               <textarea [(ngModel)]="tarea.observaciones"
+                [readonly]="tarea.completada"
                 placeholder="Observaciones de la tarea" rows="2"></textarea>
             </div>
           </div>
@@ -348,7 +529,7 @@
     </div>
   </div>
 </div>
- 
+
 <!-- Modal selección de nodo original (reemplazo) -->
 <div class="modal-overlay" *ngIf="mostrarBuscadorNodoOriginal"
   (click)="cerrarBuscadorNodoOriginal()">
@@ -368,9 +549,18 @@
                   nodo.colapsado ? '▶' : '▼' }}</span>
                 <span *ngIf="!tieneHijos(nodo)" class="leaf-icon">•</span>
               </div>
-              <div class="nodo-nombre" (click)="seleccionarNodoOriginal(nodo)">
+              <div class="nodo-nombre" [class.selectable]="nodo.es_equipo"
+                [class.highlight]="nodo.id === nodoDestacadoId"
+                (click)="seleccionarNodoOriginal(nodo)">
                 {{ nodo.nombre }}
                 <span class="nodo-tipo">({{ nodo.tipo_nombre }})</span>
+                <span *ngIf="nodo.es_equipo && nodo.campos_extra"
+                  class="nodo-detalles">
+                  <span *ngIf="nodo.campos_extra.part_number"> - PN: {{
+                    nodo.campos_extra.part_number }}</span>
+                  <span *ngIf="nodo.campos_extra.serial_number"> - SN: {{
+                    nodo.campos_extra.serial_number }}</span>
+                </span>
               </div>
             </div>
             <div class="nodo-hijos" *ngIf="tieneHijos(nodo) && !nodo.colapsado">

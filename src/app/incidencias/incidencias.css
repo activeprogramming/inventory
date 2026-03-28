@@ -579,4 +579,9 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 2px solid #e2e8f0;
+}.nodo-detalles {
+  font-size: 11px;
+  color: #5b6e8c;
+  font-weight: normal;
+  margin-left: 4px;
 }

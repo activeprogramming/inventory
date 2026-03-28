@@ -29,7 +29,12 @@ export interface EjecucionMantenimientoTarea {
   created_at: string;
   updated_at: string;
   // Opcionales
-  tarea_nombre?: string;
+  tarea_nombre?: string; 
+  tarea_descripcion?: string;
+  tarea_intervalo?: number | null;
+  tarea_duracion?: number | null;
+  tarea_detalles?: string | null;
+  tarea_estado?: boolean | null;
 }
 
 export interface EjecucionMantenimientoProducto {
@@ -44,6 +49,8 @@ export interface EjecucionMantenimientoProducto {
   // Opcionales
   producto_nombre?: string;
   producto_part_number?: string;
+
+  producto_serial_number?: string;
 }
 
 export interface EjecucionMantenimientoReemplazo {
@@ -59,8 +66,12 @@ export interface EjecucionMantenimientoReemplazo {
   updated_at: string;
   // Opcionales
   producto_nombre?: string;
+
+  producto_serial_number?: string;
   nodo_original_nombre?: string;
+  producto_part_number?: string;   
   nodo_reemplazo_nombre?: string;
+  
 }
 
 @Injectable({
@@ -142,21 +153,21 @@ export class EjecucionMantenimientoService {
       // 2. Obtener tareas
       const { data: tareas, error: tError } = await supabase
         .from(this.tareasTable)
-        .select('*, tareas(nombre)')
+        .select('*, tareas(nombre, descripcion, intervalo_ejecucion_meses, duracion_estimada_minutos, detalles)')
         .eq('ejecucion_mantenimiento_id', id);
       if (tError) throw tError;
 
       // 3. Obtener productos
       const { data: productos, error: pError } = await supabase
         .from(this.productosTable)
-        .select('*, productos(nombre, part_number)')
+        .select('*, productos(nombre, part_number, serial_number)')
         .eq('ejecucion_mantenimiento_id', id);
       if (pError) throw pError;
 
       // 4. Obtener reemplazos
       const { data: reemplazos, error: rError } = await supabase
         .from(this.reemplazosTable)
-        .select('*, productos(nombre, part_number), nodos_original:nodos!nodo_original_id(nombre), nodos_reemplazo:nodos!nodo_reemplazo_id(nombre)')
+        .select('*, productos(nombre, part_number, serial_number), nodos_original:nodos!nodo_original_id(nombre), nodos_reemplazo:nodos!nodo_reemplazo_id(nombre)')
         .eq('ejecucion_mantenimiento_id', id);
       if (rError) throw rError;
 
@@ -168,11 +179,24 @@ export class EjecucionMantenimientoService {
 
       return {
         ejecucion: ejecucionEnriquecida,
-        tareas: (tareas || []).map((t: any) => ({ ...t, tarea_nombre: t.tareas?.nombre })),
-        productos: (productos || []).map((p: any) => ({ ...p, producto_nombre: p.productos?.nombre, producto_part_number: p.productos?.part_number })),
+       tareas: (tareas || []).map((t: any) => ({
+  ...t,
+  tarea_nombre: t.tareas?.nombre,
+  tarea_descripcion: t.tareas?.descripcion,
+  tarea_intervalo: t.tareas?.intervalo_ejecucion_meses,
+  tarea_duracion: t.tareas?.duracion_estimada_minutos,
+  tarea_detalles: t.tareas?.detalles,
+  tarea_estado: t.tareas?.estado
+})),
+        productos: (productos || []).map((p: any) => ({
+          ...p, producto_nombre: p.productos?.nombre, producto_part_number: p.productos?.part_number,
+          producto_serial_number: p.productos?.serial_number
+        })),
         reemplazos: (reemplazos || []).map((r: any) => ({
           ...r,
           producto_nombre: r.productos?.nombre,
+          producto_part_number: r.productos?.part_number,
+          producto_serial_number: r.productos?.serial_number,   // <-- nuevo
           nodo_original_nombre: r.nodos_original?.nombre,
           nodo_reemplazo_nombre: r.nodos_reemplazo?.nombre
         }))
@@ -517,6 +541,25 @@ export class EjecucionMantenimientoService {
     }
   }
 
+
+  async updateTareaNodoUltimaEjecucion(tareaId: number, nodoId: number): Promise<void> {
+    const { error } = await supabase
+      .from('tarea_nodo')
+      .update({ ultima_ejecucion: new Date().toISOString() })
+      .eq('tarea_id', tareaId)
+      .eq('nodo_id', nodoId);
+    if (error) throw error;
+  }
+  async getOpenEjecucionByOrden(ordenTrabajoId: number): Promise<number | null> {
+    const { data, error } = await supabase
+      .from(this.ejecucionesTable)
+      .select('id')
+      .eq('orden_trabajo_id', ordenTrabajoId)
+      .is('fecha_ejecucion_fin', null)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.id ?? null;
+  }
   /**
    * Finalizar una ejecución (registrar hora de fin, actualizar estados)
    */

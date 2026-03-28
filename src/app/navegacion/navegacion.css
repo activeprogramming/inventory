@@ -702,4 +702,58 @@ a {
 .badge.online-badge i {
   margin-right: 5px;
   font-size: 12px;
+}/* Estilos para el badge de órdenes preventivas */
+.ordenes-detalle-container {
+  position: relative;
+  display: inline-block;
+  margin-right: 15px;
+}
+.ordenes-badge {
+  background: #ffc107;
+  color: #212529;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ordenes-badge:hover {
+  background: #e0a800;
+}
+.ordenes-detalle-container .detalle-panel {
+  right: 0;
+  left: auto;
+}
+.orden-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eef2f6;
+  font-size: 13px;
+}
+.orden-nodo {
+  font-weight: 600;
+  color: #0a2540;
+}
+.orden-desc {
+  color: #475569;
+  font-size: 12px;
+  margin: 2px 0;
+}
+.orden-fecha {
+  font-size: 11px;
+  color: #94a3b8;
+}
+.sin-ordenes {
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+}
+.detalle-panel .btn-refresh {
+  background: #f1f5f9;
+  border: none;
+  color: #1e293b;
+  font-size: 12px;
+}
+.detalle-panel .btn-refresh:hover {
+  background: #e2e8f0;
 }
