@@ -42,6 +42,16 @@ export class TareasService {
   /**
    * Obtener todas las tareas con paginación y filtros
    */
+
+  async getTareaByNombre(nombre: string): Promise<Tarea | null> {
+    const { data, error } = await  supabase
+      .from('tareas')
+      .select('*')
+      .eq('nombre', nombre)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
   async getTareas(filters?: {
     search?: string;
     estado?: boolean;
@@ -107,7 +117,14 @@ export class TareasService {
       throw this.handleError(error, `obtener tarea ${id}`);
     }
   }
-
+// En ordenes-trabajo.service.ts
+async getTareasNombresByOrdenId(ordenId: number): Promise<string[]> {
+  const { data, error } = await   supabase
+    .rpc('obtener_tareas_por_orden', { orden_id: ordenId });
+  if (error) throw error;
+  // data es un array de objetos { tarea_nombre: string }
+  return data.map((item: any) => item.tarea_nombre);
+}
   /**
    * Crear una nueva tarea
    */

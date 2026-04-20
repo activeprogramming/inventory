@@ -5,6 +5,8 @@ import { OrdenesTrabajoService, OrdenTrabajo } from '../../services/ordenes-trab
 import { NodosService, Nodo } from '../../services/nodos.service';
 import { IncidenciasService } from '../../services/incidencias.service';
 import { TareasService, Tarea } from '../../services/tareas.service';
+import { AuthService } from '../../services/auth.service';
+import { UsuariosService } from '../../services/usuarios.service';
 @Component({
   selector: 'app-ordenes',
   standalone: true,
@@ -13,7 +15,33 @@ import { TareasService, Tarea } from '../../services/tareas.service';
   styleUrls: ['./ordenes.css']
 })
 export class Ordenes implements OnInit {
+    userPrivileges: string[] = [];
   tareasDeOrden: Tarea[] = [];
+  userName: string = 'Usuario';
+  async cargarDatosUsuario() {
+    try {
+      // Obtener sesión actual
+      const session = await this.authService.getCurrentSession();
+
+      if (!session?.user) {
+        return;
+      }
+
+      const userId = session.user.id;
+
+      // Obtener el perfil del usuario
+      const perfil = await this.usuariosService.getUsuarioById(userId);
+
+      // Asignar el nombre
+      if (perfil?.nombre_completo) {
+        this.userName = perfil.nombre_completo;
+      }
+
+
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+    }
+  }
   // Propiedades adicionales
 nodoDetalle: Nodo | null = null;
 // Dentro de la clase Ordenes, añade este método:
@@ -34,6 +62,11 @@ obtenerRutaNodo(nodoId: number): string {
   const ruta = buscarRuta(this.arbolNodos, []);
   return ruta || 'Ubicación no encontrada';
 }
+
+  tienePrivilegio(privilegeCode: string): boolean {
+    return this.userPrivileges.includes(privilegeCode);
+  }
+
 // Método para buscar un nodo por ID en el árbol cargado
 private buscarNodoEnArbol(id: number): Nodo | null {
   const buscar = (nodos: Nodo[]): Nodo | null => {
@@ -93,7 +126,7 @@ cerrarModalIncidencia() {
   estadosDisponibles = [
     { value: 'pendiente', label: 'Pendiente' },
     { value: 'en_proceso', label: 'En proceso' },
-    { value: 'completada', label: 'Completada' },
+    { value: 'solucionada', label: 'solucionada' },
     { value: 'cancelada', label: 'Cancelada' }
   ];
   tiposDisponibles = [
@@ -137,6 +170,8 @@ cerrarModalIncidencia() {
     private nodosService: NodosService,
     private incidenciasService: IncidenciasService,
     private cdr: ChangeDetectorRef,
+        private authService: AuthService,
+            private usuariosService: UsuariosService ,
   private tareasService: TareasService
   ) {}
 async cargarTareasDeOrden(orden: OrdenTrabajo) {
@@ -145,19 +180,30 @@ async cargarTareasDeOrden(orden: OrdenTrabajo) {
     return;
   }
   try {
-    const asignaciones = await this.tareasService.getTareasByNodo(orden.nodo_id);
-    const tareasCompletas: Tarea[] = [];
-    for (const asig of asignaciones) {
-      const tarea = await this.tareasService.getTareaById(asig.tarea_id);
-      tareasCompletas.push(tarea);
-    }
-    this.tareasDeOrden = tareasCompletas;
+    // Obtiene las tareas completas a partir de los IDs guardados en la descripción
+    this.tareasDeOrden = await this.ordenesService.getTareasCompletasByOrdenId(orden.id);
   } catch (error) {
     console.error('Error cargando tareas de la orden:', error);
     this.tareasDeOrden = [];
   }
 }
+
+private loadUserPrivileges() {
+    try {
+      const privilegiosGuardados = localStorage.getItem('user_privileges');
+      if (privilegiosGuardados) {
+        this.userPrivileges = JSON.parse(privilegiosGuardados);
+        console.log('✅ Privilegios cargados en TipoNodo:', this.userPrivileges);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando privilegios:', error);
+      this.userPrivileges = [];
+    }
+  }
+
   async ngOnInit() {
+    this.cargarDatosUsuario();
+    this.loadUserPrivileges();
     await this.cargarOrdenes();
     await this.cargarArbolNodos();
      try {
@@ -285,7 +331,7 @@ private filtrarActivos(nodos: Nodo[]): Nodo[] {
       nodo_id: 0,
       nodo_nombre: '',
       descripcion: '',
-      tecnico_asignado: '',
+      tecnico_asignado: this.userName,
       observaciones: ''
     };
     this.mostrarModalCrear = true;
@@ -349,20 +395,29 @@ abrirModalDetalle(orden: OrdenTrabajo) {
   this.ordenSeleccionada = null;
   this.nodoDetalle = null;
 }
-  abrirModalEditar(orden: OrdenTrabajo) {
-    this.ordenSeleccionada = orden;
-    this.editarOrden = {
-      descripcion: orden.descripcion || '',
-      estado: orden.estado,
-      tecnico_asignado: orden.tecnico_asignado || '',
-      observaciones: orden.observaciones || ''
-    };
-    this.mostrarModalEditar = true;
-  }
+
+ mostrarMensajeAutoAsignacion: boolean = false;
+ abrirModalEditar(orden: OrdenTrabajo) {
+  this.ordenSeleccionada = orden;
+  const tecnicoActual = orden.tecnico_asignado?.trim() || '';
+  console.log('tecnicoActual:', tecnicoActual);
+  console.log('currentUserName:', this,this.userName);
+  // Mostrar mensaje solo si el campo estaba vacío
+  this.mostrarMensajeAutoAsignacion = !tecnicoActual;
+  console.log('mostrarMensajeAutoAsignacion:', this.mostrarMensajeAutoAsignacion);
+  this.editarOrden = {
+    descripcion: orden.descripcion || '',
+    estado: orden.estado,
+    tecnico_asignado: tecnicoActual || this.userName || 'Técnico',
+    observaciones: orden.observaciones || ''
+  };
+  this.mostrarModalEditar = true;
+}
 
   cerrarModalEditar() {
     this.mostrarModalEditar = false;
     this.ordenSeleccionada = null;
+    this.mostrarMensajeAutoAsignacion = false; // reiniciar
   }
 
   async guardarEdicion() {
@@ -371,7 +426,7 @@ abrirModalDetalle(orden: OrdenTrabajo) {
     try {
       await this.ordenesService.updateOrden(this.ordenSeleccionada.id, {
         descripcion: this.editarOrden.descripcion,
-        estado: this.editarOrden.estado as 'pendiente' | 'en_proceso' | 'completada' | 'cancelada',
+        estado: this.editarOrden.estado as 'pendiente' | 'en_proceso' | 'solucionada' | 'cancelada',
         tecnico_asignado: this.editarOrden.tecnico_asignado || null,
         observaciones: this.editarOrden.observaciones || null
       });
@@ -420,7 +475,7 @@ abrirModalDetalle(orden: OrdenTrabajo) {
     switch (estado) {
       case 'pendiente': return 'estado-pendiente';
       case 'en_proceso': return 'estado-proceso';
-      case 'completada': return 'estado-completada';
+      case 'solucionada': return 'estado-solucionada';
       case 'cancelada': return 'estado-cancelada';
       default: return 'estado-default';
     }
@@ -449,6 +504,6 @@ abrirModalDetalle(orden: OrdenTrabajo) {
   }
 
   get totalCompletadas(): number {
-    return this.ordenes?.filter(o => o.estado === 'completada').length ?? 0;
+    return this.ordenes?.filter(o => o.estado === 'solucionada').length ?? 0;
   }
 }

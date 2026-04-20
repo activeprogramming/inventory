@@ -4,6 +4,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IncidenciasService, Incidencia } from '../../services/incidencias.service';
 import { NodosService, Nodo } from '../../services/nodos.service';
+import { AuthService } from '../../services/auth.service';
+import { UsuariosService } from '../../services/usuarios.service';
 
 @Component({
   selector: 'app-incidencias',
@@ -49,7 +51,32 @@ nodoDetalle: Nodo | null = null;
   mostrarModalEditar: boolean = false;
   mostrarModalEliminar: boolean = false;
   incidenciaSeleccionada: Incidencia | null = null;
+userName: string = 'Usuario';
+async cargarDatosUsuario() {
+    try {
+      // Obtener sesión actual
+      const session = await this.authService.getCurrentSession();
 
+      if (!session?.user) {
+        return;
+      }
+
+      const userId = session.user.id;
+
+      // Obtener el perfil del usuario
+      const perfil = await this.usuariosService.getUsuarioById(userId);
+
+      // Asignar el nombre
+      if (perfil?.nombre_completo) {
+        this.userName = perfil.nombre_completo;
+      }
+
+
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+    }
+  }
+  userPrivileges: string[] = [];
   // Datos para crear incidencia
   nuevaIncidencia = {
     nodo_id: 0,
@@ -75,14 +102,32 @@ nodoDetalle: Nodo | null = null;
   constructor(
     private incidenciasService: IncidenciasService,
     private nodosService: NodosService,
+        private authService: AuthService,
+            private usuariosService: UsuariosService,
     private cdr: ChangeDetectorRef
   ) { }
 
   async ngOnInit() {
     await this.cargarIncidencias();
     await this.cargarArbolEquipos();
+    this.loadUserPrivileges();
+    this.cargarDatosUsuario();
   }
-
+  private loadUserPrivileges() {
+    try {
+      const privilegiosGuardados = localStorage.getItem('user_privileges');
+      if (privilegiosGuardados) {
+        this.userPrivileges = JSON.parse(privilegiosGuardados);
+        console.log('✅ Privilegios cargados en TipoNodo:', this.userPrivileges);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando privilegios:', error);
+      this.userPrivileges = [];
+    }
+  }
+ tienePrivilegio(privilegeCode: string): boolean {
+    return this.userPrivileges.includes(privilegeCode);
+  }
   async cargarIncidencias() {
     this.loading = true;
     try {
@@ -249,7 +294,7 @@ obtenerRutaNodox(nodoId: number): string {
       nodo_nombre: '',
       descripcion: '',
       prioridad: 'media',
-      reportado_por: '',
+      reportado_por: this.userName,
       detalles: ''
     };
     this.mostrarModalCrear = true;

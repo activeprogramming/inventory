@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TareasService, Tarea, TareaNodo } from '../../services/tareas.service';
 import { NodosService, Nodo } from '../../services/nodos.service';
+import { AuthService } from '../../services/auth.service';
+import { UsuariosService } from '../../services/usuarios.service';
 interface NodoAsignado extends TareaNodo {
   nodo?: Nodo | null;  // acepta tanto undefined como null
 }
@@ -18,7 +20,31 @@ export class Tareas  implements OnInit {
   tareas: Tarea[] = [];
   totalRegistros: number = 0;
   loading: boolean = false;
+userName: string = 'Usuario';
+async cargarDatosUsuario() {
+    try {
+      // Obtener sesión actual
+      const session = await this.authService.getCurrentSession();
 
+      if (!session?.user) {
+        return;
+      }
+
+      const userId = session.user.id;
+
+      // Obtener el perfil del usuario
+      const perfil = await this.usuariosService.getUsuarioById(userId);
+
+      // Asignar el nombre
+      if (perfil?.nombre_completo) {
+        this.userName = perfil.nombre_completo;
+      }
+
+
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+    }
+  }
   // Filtros
   filtros = {
     search: '',
@@ -46,23 +72,41 @@ nodosAsignados: NodoAsignado[] = [];
     detalles: '',
     estado: true
   };
-
+userPrivileges: string[] = [];
   // Para asignación masiva
   arbolNodos: Nodo[] = [];
   seleccionados = new Set<number>(); // ids de nodos seleccionados
   seleccionadosOriginal = new Set<number>(); // para comparar cambios
-
+ tienePrivilegio(privilegeCode: string): boolean {
+    return this.userPrivileges.includes(privilegeCode);
+  }
   constructor(
     private tareasService: TareasService,
     private nodosService: NodosService,
+        private authService: AuthService,
+            private usuariosService: UsuariosService,
     private cdr: ChangeDetectorRef
   ) {}
 
   async ngOnInit() {
     await this.cargarTareas();
     await this.cargarArbolNodos();
+    this.loadUserPrivileges();
+    this.cargarDatosUsuario();
   }
 
+  private loadUserPrivileges() {
+    try {
+      const privilegiosGuardados = localStorage.getItem('user_privileges');
+      if (privilegiosGuardados) {
+        this.userPrivileges = JSON.parse(privilegiosGuardados);
+        console.log('✅ Privilegios cargados en TipoNodo:', this.userPrivileges);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando privilegios:', error);
+      this.userPrivileges = [];
+    }
+  }
   async cargarTareas() {
     this.loading = true;
     try {

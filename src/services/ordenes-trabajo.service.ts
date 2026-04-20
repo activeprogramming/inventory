@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { supabase } from './supabase-client';
+import { Tarea, TareasService } from './tareas.service';
 
 export interface OrdenTrabajo {
   id: number;
@@ -7,7 +8,7 @@ export interface OrdenTrabajo {
   nodo_id: number;
   descripcion: string | null;
   fecha_generacion: string;
-  estado: 'pendiente' | 'en_proceso' | 'completada' | 'cancelada';
+  estado: 'pendiente' | 'en_proceso' | 'solucionada' | 'cancelada';
   tipo: 'correctivo' | 'preventivo';
   tecnico_asignado: string | null;
   observaciones: string | null;
@@ -23,8 +24,9 @@ export interface OrdenTrabajo {
 })
 export class OrdenesTrabajoService {
   private tableName = 'ordenes_trabajo';
+ 
 
-  constructor() {}
+  constructor(private tareasService: TareasService) {}
 
   /**
    * Obtener todas las órdenes de trabajo con paginación y filtros
@@ -99,7 +101,30 @@ export class OrdenesTrabajoService {
       throw this.handleError(error, 'obtener órdenes de trabajo');
     }
   }
+// En ordenes-trabajo.service.ts
+async getTareasNombresByOrdenId(ordenId: number): Promise<string[]> {
+  const { data, error } = await  supabase
+    .rpc('obtener_tareas_por_orden', { orden_id: ordenId });
+  if (error) throw error;
+  // data es un array de objetos { tarea_nombre: string }
+  return data.map((item: any) => item.tarea_nombre);
+}
 
+
+// En ordenes-trabajo.service.ts
+async getTareasCompletasByOrdenId(ordenId: number): Promise<Tarea[]> {
+  const { data: ids, error } = await  supabase
+    .rpc('obtener_ids_tareas_por_orden', { orden_id: ordenId });
+  if (error) throw error;
+  if (!ids || ids.length === 0) return [];
+  
+  const tareas: Tarea[] = [];
+  for (const row of ids) {
+    const tarea = await this.tareasService.getTareaById(row.tarea_id);
+    if (tarea) tareas.push(tarea);
+  }
+  return tareas;
+}
   /**
    * Obtener una orden de trabajo por ID
    */

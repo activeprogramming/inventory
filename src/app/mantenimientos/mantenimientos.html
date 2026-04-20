@@ -2,7 +2,7 @@
   <!-- Header -->
   <header class="mantenimientos-header">
     <div class="header-content">
-      <h1 class="titulo-principal">
+      <h1 *ngIf="tienePrivilegio('tiponodo.Editar')"class="titulo-principal">
         <span class="icono">🔧</span>
         Ejecución de Mantenimientos
       </h1>
@@ -46,7 +46,7 @@
     <div class="tabla-container">
       <table class="ordenes-tabla">
         <thead>
-          <th>ID</th>
+          <th>Numeración</th>
           <th>Código</th>
           <th>Nodo</th>
           <th>Tipo</th>
@@ -56,8 +56,10 @@
           <th>Acciones</th>
         </thead>
         <tbody>
-          <tr *ngFor="let ord of ordenes" class="registro-fila">
-            <td class="col-id">{{ ord.id }}</td>
+          <tr *ngFor="let ord of ordenes ; let i = index" class="registro-fila">
+           <td class="col-numero">
+  {{ totalRegistros - ((filtros.page - 1) * filtros.limit + i) }}
+</td>
             <td class="col-codigo">{{ ord.id }}</td>
             <td class="col-nodo">{{ ord.nodo_nombre }} ({{ ord.nodo_tipo
               }})</td>

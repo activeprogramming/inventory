@@ -10,7 +10,7 @@
       <p class="subtitulo">Registre y gestione las incidencias de equipos</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-primary" (click)="abrirModalCrear()">
+      <button *ngIf="tienePrivilegio('incidencias.Editar')"class="btn btn-primary" (click)="abrirModalCrear()">
         <span class="icono-btn">➕</span> Nueva Incidencia
       </button>
     </div>

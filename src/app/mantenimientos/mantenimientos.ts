@@ -7,6 +7,8 @@ import { NodosService, Nodo } from '../../services/nodos.service';
 import { ProductosService } from '../../services/productos.service';
 import { Producto } from '../moldes/producto.model';
 import { TareasService, Tarea } from '../../services/tareas.service';
+import { AuthService } from '../../services/auth.service';
+import { UsuariosService } from '../../services/usuarios.service';
 interface EnrichedEjecucion {
   ejecucion: EjecucionMantenimiento;
   tareas: EjecucionMantenimientoTarea[];
@@ -24,11 +26,11 @@ interface EnrichedEjecucion {
 export class Mantenimientos implements OnInit {
 
 
-// Propiedades para el modal de detalle de orden
-mostrarModalDetalleOrden: boolean = false;
-ordenDetalle: OrdenTrabajo | null = null;
-nodoDetalleOrden: Nodo | null = null;
-tareasOrden: Tarea[] = [];
+  // Propiedades para el modal de detalle de orden
+  mostrarModalDetalleOrden: boolean = false;
+  ordenDetalle: OrdenTrabajo | null = null;
+  nodoDetalleOrden: Nodo | null = null;
+  tareasOrden: Tarea[] = [];
 
 
 
@@ -101,68 +103,79 @@ tareasOrden: Tarea[] = [];
   mostrarModalHistorialEjecuciones: boolean = false;
   ejecucionesHistorial: EjecucionMantenimiento[] = [];
 
+userName: string = 'Usuario';
+
+async cargarDatosUsuario() {
+    try {
+      // Obtener sesión actual
+      const session = await this.authService.getCurrentSession();
+
+      if (!session?.user) {
+        return;
+      }
+
+      const userId = session.user.id;
+
+      // Obtener el perfil del usuario
+      const perfil = await this.usuariosService.getUsuarioById(userId);
+
+      // Asignar el nombre
+      if (perfil?.nombre_completo) {
+        this.userName = perfil.nombre_completo;
+      }
+
+
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+    }
+  }
 
 
 
-
-
-
-
+  userPrivileges: string[] = [];
 
 
   async verDetalleOrden(orden: OrdenTrabajo) {
-  this.ordenDetalle = orden;
-  // Cargar información completa del nodo (campos extra)
-  try {
-    this.nodoDetalleOrden = await this.nodosService.getArbol(orden.nodo_id);
-  } catch (error) {
-    console.error('Error cargando nodo:', error);
-  }
-  // Cargar tareas preventivas asignadas al nodo (si es preventivo)
-  if (orden.tipo === 'preventivo') {
+    this.ordenDetalle = orden;
     try {
-      const asignaciones = await this.tareasService.getTareasByNodo(orden.nodo_id);
-      const tareasCompletas: Tarea[] = [];
-      for (const asig of asignaciones) {
-        const tarea = await this.tareasService.getTareaById(asig.tarea_id);
-        tareasCompletas.push(tarea);
-      }
-      this.tareasOrden = tareasCompletas;
+      this.nodoDetalleOrden = await this.nodosService.getArbol(orden.nodo_id);
     } catch (error) {
-      console.error('Error cargando tareas:', error);
+      console.error('Error cargando nodo:', error);
     }
-  } else {
+    if (orden.tipo === 'preventivo') {
+      this.tareasOrden = await this.ordenesService.getTareasCompletasByOrdenId(orden.id);
+    } else {
+      this.tareasOrden = [];
+    }
+    this.mostrarModalDetalleOrden = true;
+  }
+
+  cerrarModalDetalleOrden() {
+    this.mostrarModalDetalleOrden = false;
+    this.ordenDetalle = null;
+    this.nodoDetalleOrden = null;
     this.tareasOrden = [];
   }
-  this.mostrarModalDetalleOrden = true;
-}
-
-cerrarModalDetalleOrden() {
-  this.mostrarModalDetalleOrden = false;
-  this.ordenDetalle = null;
-  this.nodoDetalleOrden = null;
-  this.tareasOrden = [];
-}
   // Método para ver ejecuciones
-async verEjecuciones(orden: OrdenTrabajo) {
-  try {
-    const ejecuciones = await this.ejecucionService.getEjecucionesByOrden(orden.id);
-    const ejecucionesDetalladas: EnrichedEjecucion[] = [];
-    const nodo = this.buscarNodoEnArbol(orden.nodo_id);
-    for (const ej of ejecuciones) {
-      const detalle = await this.ejecucionService.getEjecucionById(ej.id);
-      ejecucionesDetalladas.push({
-        ...detalle,
-        nodo: nodo
-      });
+  async verEjecuciones(orden: OrdenTrabajo) {
+    try {
+      const ejecuciones = await this.ejecucionService.getEjecucionesByOrden(orden.id);
+      const ejecucionesDetalladas: EnrichedEjecucion[] = [];
+      const nodo = this.buscarNodoEnArbol(orden.nodo_id);
+      for (const ej of ejecuciones) {
+        const detalle = await this.ejecucionService.getEjecucionById(ej.id);
+        ejecucionesDetalladas.push({
+          ...detalle,
+          nodo: nodo
+        });
+      }
+      this.ejecucionesDetalladas = ejecucionesDetalladas;
+      this.mostrarModalHistorialEjecuciones = true;
+    } catch (error) {
+      console.error('Error cargando ejecuciones:', error);
+      alert('Error al cargar historial de ejecuciones');
     }
-    this.ejecucionesDetalladas = ejecucionesDetalladas;
-    this.mostrarModalHistorialEjecuciones = true;
-  } catch (error) {
-    console.error('Error cargando ejecuciones:', error);
-    alert('Error al cargar historial de ejecuciones');
   }
-}
 
   constructor(
     private ordenesService: OrdenesTrabajoService,
@@ -170,12 +183,28 @@ async verEjecuciones(orden: OrdenTrabajo) {
     private nodosService: NodosService,
     private productosService: ProductosService,
     private tareasService: TareasService,
+        private authService: AuthService,
+            private usuariosService: UsuariosService,
     private cdr: ChangeDetectorRef
   ) { }
 
   async ngOnInit() {
     await this.cargarOrdenes();
     await this.cargarArbolNodos();
+    this.loadUserPrivileges();
+    this.cargarDatosUsuario();
+  }
+  private loadUserPrivileges() {
+    try {
+      const privilegiosGuardados = localStorage.getItem('user_privileges');
+      if (privilegiosGuardados) {
+        this.userPrivileges = JSON.parse(privilegiosGuardados);
+        console.log('✅ Privilegios cargados en TipoNodo:', this.userPrivileges);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando privilegios:', error);
+      this.userPrivileges = [];
+    }
   }
 
   // ==================== CARGAR DATOS INICIALES ====================
@@ -247,9 +276,6 @@ async verEjecuciones(orden: OrdenTrabajo) {
   nodoDetalle: Nodo | null = null;
 
 
-
-
-
 private async cargarDatosEjecucion(orden: OrdenTrabajo, ejecucionId: number | null) {
   this.ordenSeleccionada = orden;
   this.ejecucionId = ejecucionId;
@@ -269,21 +295,30 @@ private async cargarDatosEjecucion(orden: OrdenTrabajo, ejecucionId: number | nu
     console.error('Error cargando nodo:', error);
   }
 
+  // ============================================================
+  // NUEVO: Obtener las tareas que realmente corresponden a esta orden
+  // usando los IDs guardados en la descripción
+  // ============================================================
+  let tareasPlanificadas: Tarea[] = [];
+  if (orden.tipo === 'preventivo') {
+    try {
+      tareasPlanificadas = await this.ordenesService.getTareasCompletasByOrdenId(orden.id);
+    } catch (error) {
+      console.error('Error cargando tareas planificadas:', error);
+    }
+  }
+
   // Si hay una ejecución existente, cargar sus datos
   if (ejecucionId) {
     try {
       const data = await this.ejecucionService.getEjecucionById(ejecucionId);
       this.ejecucionActual = data.ejecucion;
 
-      // Cargar tareas ya completadas (si es preventivo)
+      // ============================================================
+      // TAREAS: combinar las planificadas con las ya realizadas
+      // ============================================================
       if (orden.tipo === 'preventivo') {
-        const tareasAsignadas = await this.tareasService.getTareasByNodo(orden.nodo_id);
-        const tareasCompletas: Tarea[] = [];
-        for (const ta of tareasAsignadas) {
-          const tareaCompleta = await this.tareasService.getTareaById(ta.tarea_id);
-          tareasCompletas.push(tareaCompleta);
-        }
-        this.tareasPreventivas = tareasCompletas.map(t => {
+        this.tareasPreventivas = tareasPlanificadas.map(t => {
           const yaRealizada = data.tareas.find(tarea => tarea.tarea_id === t.id);
           return {
             ...t,
@@ -327,83 +362,80 @@ private async cargarDatosEjecucion(orden: OrdenTrabajo, ejecucionId: number | nu
       alert('No se pudo cargar la ejecución');
     }
   } else {
-    // Nueva ejecución: cargar tareas preventivas pendientes (si es preventivo)
+    // ============================================================
+    // NUEVA EJECUCIÓN: todas las tareas planificadas están pendientes
+    // ============================================================
     if (orden.tipo === 'preventivo') {
-      try {
-        const tareasAsignadas = await this.tareasService.getTareasByNodo(orden.nodo_id);
-        const tareasCompletas: Tarea[] = [];
-        for (const ta of tareasAsignadas) {
-          const tareaCompleta = await this.tareasService.getTareaById(ta.tarea_id);
-          tareasCompletas.push(tareaCompleta);
-        }
-        this.tareasPreventivas = tareasCompletas.map(t => ({
-          ...t,
-          completada: false,
-          observaciones: '',
-          acciones: '',
-          fecha_fin: undefined,
-          bloqueada: false
-        }));
-      } catch (error) {
-        console.error('Error cargando tareas:', error);
-      }
+      this.tareasPreventivas = tareasPlanificadas.map(t => ({
+        ...t,
+        completada: false,
+        observaciones: '',
+        acciones: '',
+        fecha_fin: undefined,
+        bloqueada: false
+      }));
     }
+    // Inicializar productos, reemplazos, etc.
+    this.productosConsumidos = [];
+    this.reemplazos = [];
+    this.accionesRealizadas = '';
+    this.observacionesGenerales = '';
   }
 
   this.mostrarModalEjecucion = true;
 }
 
-async iniciarEjecucion(orden: OrdenTrabajo) {
-  // Verificar si ya existe una ejecución abierta
-  const ejecucionExistente = await this.ejecucionService.getOpenEjecucionByOrden(orden.id);
-  if (ejecucionExistente) {
-    alert('Ya existe una ejecución en curso para esta orden. Se abrirá la ejecución existente.');
-    await this.continuarEjecucion(orden);
-    return;
-  }
-
-  const confirmar = confirm('No se podrá modificar ni actualizar la fecha y hora de inicio una vez que acepte. ¿Desea continuar?');
-  if (!confirmar) return;
-
-  try {
-    // Crear la ejecución con fecha de inicio actual
-    const nuevaEjecucion = await this.ejecucionService.createEjecucion({
-      orden_trabajo_id: orden.id,
-      fecha_ejecucion_inicio: new Date().toISOString(),
-      fecha_ejecucion_fin: null,
-      realizada_por: 'Técnico', // podríamos obtener del perfil
-      acciones: null,
-      observaciones: null,
-      detalles: null
-    });
-
-    // Actualizar estado de la orden a 'en_proceso'
-    await this.ordenesService.updateOrden(orden.id, { estado: 'en_proceso' });
-
-    // Refrescar la lista de órdenes para que el botón cambie a "Continuar"
-    await this.cargarOrdenes();
-
-    // Abrir el modal con la ejecución recién creada
-    await this.cargarDatosEjecucion(orden, nuevaEjecucion.id);
-
-  } catch (error) {
-    console.error('Error iniciando ejecución:', error);
-    alert('Error al iniciar la ejecución');
-  }
-}
-async continuarEjecucion(orden: OrdenTrabajo) {
-  try {
-    const ejecucionId = await this.ejecucionService.getOpenEjecucionByOrden(orden.id);
-    if (!ejecucionId) {
-      alert('No hay una ejecución en curso para esta orden');
+  async iniciarEjecucion(orden: OrdenTrabajo) {
+    // Verificar si ya existe una ejecución abierta
+    const ejecucionExistente = await this.ejecucionService.getOpenEjecucionByOrden(orden.id);
+    if (ejecucionExistente) {
+      alert('Ya existe una ejecución en curso para esta orden. Se abrirá la ejecución existente.');
+      await this.continuarEjecucion(orden);
       return;
     }
-    await this.cargarDatosEjecucion(orden, ejecucionId);
-  } catch (error) {
-    console.error('Error cargando ejecución para continuar:', error);
-    alert('Error al cargar la ejecución');
+
+    const confirmar = confirm('No se podrá modificar ni actualizar la fecha y hora de inicio una vez que acepte. ¿Desea continuar?');
+    if (!confirmar) return;
+
+    try {
+      // Crear la ejecución con fecha de inicio actual
+      const nuevaEjecucion = await this.ejecucionService.createEjecucion({
+        orden_trabajo_id: orden.id,
+        fecha_ejecucion_inicio: new Date().toISOString(),
+        fecha_ejecucion_fin: null,
+        realizada_por: 'Técnico', // podríamos obtener del perfil
+        acciones: null,
+        observaciones: null,
+        detalles: null
+      });
+
+      // Actualizar estado de la orden a 'en_proceso'
+      await this.ordenesService.updateOrden(orden.id, { estado: 'en_proceso' });
+
+      // Refrescar la lista de órdenes para que el botón cambie a "Continuar"
+      await this.cargarOrdenes();
+
+      // Abrir el modal con la ejecución recién creada
+      await this.cargarDatosEjecucion(orden, nuevaEjecucion.id);
+
+    } catch (error) {
+      console.error('Error iniciando ejecución:', error);
+      alert('Error al iniciar la ejecución');
+    }
   }
-}
+  async continuarEjecucion(orden: OrdenTrabajo) {
+    try {
+      const ejecucionId = await this.ejecucionService.getOpenEjecucionByOrden(orden.id);
+      if (!ejecucionId) {
+        alert('No hay una ejecución en curso para esta orden');
+        return;
+      }
+      await this.cargarDatosEjecucion(orden, ejecucionId);
+    } catch (error) {
+      console.error('Error cargando ejecución para continuar:', error);
+      alert('Error al cargar la ejecución');
+    }
+  }
   cerrarModalEjecucion() {
     this.mostrarModalEjecucion = false;
     this.ordenSeleccionada = null;
@@ -417,92 +449,95 @@ async continuarEjecucion(orden: OrdenTrabajo) {
     this.observacionesReemplazo = '';
   }
 
-confirmarReemplazo() {
-  if (this.reemplazoPendiente) {
-    const nuevoReemplazo = {
-      producto_id: this.reemplazoPendiente.producto_id,
-      producto_nombre: this.reemplazoPendiente.producto_nombre,
-      nodo_original_id: this.reemplazoPendiente.nodo_original_id,
-      nodo_original_nombre: this.reemplazoPendiente.nodo_original_nombre,
-      nodo_reemplazo_id: this.reemplazoPendiente.nodo_reemplazo_id,
-      nodo_reemplazo_nombre: this.reemplazoPendiente.nodo_reemplazo_nombre,
-      motivo: this.motivoReemplazo,
-      observaciones: this.observacionesReemplazo
-    };
-    if (this.indiceEdicion !== null) {
-      this.reemplazos[this.indiceEdicion] = { ...this.reemplazos[this.indiceEdicion], ...nuevoReemplazo };
-    } else {
-      this.reemplazos.push(nuevoReemplazo);
+  confirmarReemplazo() {
+    if (this.reemplazoPendiente) {
+      const nuevoReemplazo = {
+        producto_id: this.reemplazoPendiente.producto_id,
+        producto_nombre: this.reemplazoPendiente.producto_nombre,
+        nodo_original_id: this.reemplazoPendiente.nodo_original_id,
+        nodo_original_nombre: this.reemplazoPendiente.nodo_original_nombre,
+        nodo_reemplazo_id: this.reemplazoPendiente.nodo_reemplazo_id,
+        nodo_reemplazo_nombre: this.reemplazoPendiente.nodo_reemplazo_nombre,
+        motivo: this.motivoReemplazo,
+        observaciones: this.observacionesReemplazo
+      };
+      if (this.indiceEdicion !== null) {
+        this.reemplazos[this.indiceEdicion] = { ...this.reemplazos[this.indiceEdicion], ...nuevoReemplazo };
+      } else {
+        this.reemplazos.push(nuevoReemplazo);
+      }
+      this.cerrarModalMotivoReemplazo();
     }
-    this.cerrarModalMotivoReemplazo();
   }
-}
   // ==================== GESTIÓN DE TAREAS ====================
 
-async onTareaCompletadaChange(index: number, completada: boolean) {
-  const tarea = this.tareasPreventivas[index];
-  if (completada && !tarea.completada) {
-    if (!this.ejecucionId) {
-      alert('Primero debe iniciar la ejecución');
-      return;
-    }
-    const confirmar = confirm('¿Guardar esta tarea como completada?');
-    if (!confirmar) return;
+  async onTareaCompletadaChange(index: number, completada: boolean) {
+    const tarea = this.tareasPreventivas[index];
+    if (completada && !tarea.completada) {
+      if (!this.ejecucionId) {
+        alert('Primero debe iniciar la ejecución');
+        return;
+      }
+      const confirmar = confirm('¿Guardar esta tarea como solucionada?');
+      if (!confirmar) return;
 
-    try {
-      // Guardar en ejecucion_mantenimiento_tarea
-      await this.ejecucionService.addTarea(this.ejecucionId, tarea.id, {
-        fecha_ejecucion_fin: new Date().toISOString(),
-        observaciones: tarea.observaciones,
-        acciones: tarea.acciones
-      });
+      try {
+        // Guardar en ejecucion_mantenimiento_tarea
+        await this.ejecucionService.addTarea(this.ejecucionId, tarea.id, {
+          fecha_ejecucion_fin: new Date().toISOString(),
+          observaciones: tarea.observaciones,
+          acciones: tarea.acciones
+        });
 
-      // Actualizar última ejecución en tarea_nodo usando el servicio
-      await this.ejecucionService.updateTareaNodoUltimaEjecucion(tarea.id, this.ordenSeleccionada!.nodo_id);
+        // Actualizar última ejecución en tarea_nodo usando el servicio
+        await this.ejecucionService.updateTareaNodoUltimaEjecucion(tarea.id, this.ordenSeleccionada!.nodo_id);
 
-      // Actualizar estado local
-      tarea.completada = true;
-      tarea.fecha_fin = new Date().toISOString();
-      this.cdr.detectChanges();
-    } catch (error) {
-      console.error('Error guardando tarea:', error);
-      alert('Error al guardar la tarea');
-    }
-  }
-}
-
-
-
-
-// En la parte donde se manejan productos (dentro de la clase Mantenimientos)
- 
-private buscarNodoEnArbol(id: number): Nodo | null {
-  const buscar = (nodos: Nodo[]): Nodo | null => {
-    for (const n of nodos) {
-      if (n.id === id) return n;
-      if (n.hijos) {
-        const encontrado = buscar(n.hijos);
-        if (encontrado) return encontrado;
+        // Actualizar estado local
+        tarea.completada = true;
+        tarea.fecha_fin = new Date().toISOString();
+        this.cdr.detectChanges();
+      } catch (error) {
+        console.error('Error guardando tarea:', error);
+        alert('Error al guardar la tarea');
       }
     }
-    return null;
-  };
-  return buscar(this.arbolNodos);
-}
-async eliminarProducto(index: number) {
-  const prod = this.productosConsumidos[index];
-  if (prod.id) {
-    try {
-      await this.ejecucionService.removeProducto(prod.id);
-      this.productosConsumidos.splice(index, 1);
-    } catch (error) {
-      console.error('Error eliminando producto:', error);
-      alert('Error al eliminar producto');
-    }
-  } else {
-    this.productosConsumidos.splice(index, 1);
   }
-}
+
+  tienePrivilegio(privilegeCode: string): boolean {
+    return this.userPrivileges.includes(privilegeCode);
+  }
+
+
+
+  // En la parte donde se manejan productos (dentro de la clase Mantenimientos)
+
+  private buscarNodoEnArbol(id: number): Nodo | null {
+    const buscar = (nodos: Nodo[]): Nodo | null => {
+      for (const n of nodos) {
+        if (n.id === id) return n;
+        if (n.hijos) {
+          const encontrado = buscar(n.hijos);
+          if (encontrado) return encontrado;
+        }
+      }
+      return null;
+    };
+    return buscar(this.arbolNodos);
+  }
+  async eliminarProducto(index: number) {
+    const prod = this.productosConsumidos[index];
+    if (prod.id) {
+      try {
+        await this.ejecucionService.removeProducto(prod.id);
+        this.productosConsumidos.splice(index, 1);
+      } catch (error) {
+        console.error('Error eliminando producto:', error);
+        alert('Error al eliminar producto');
+      }
+    } else {
+      this.productosConsumidos.splice(index, 1);
+    }
+  }
   // ==================== GESTIÓN DE PRODUCTOS (CONSUMO) ====================
   abrirBuscadorProducto(tipo: 'consumo' | 'reemplazo', indice?: number) {
     this.tipoProductoSeleccionado = tipo;
@@ -530,67 +565,67 @@ async eliminarProducto(index: number) {
   seleccionarProducto(producto: Producto) {
     this.productoSeleccionado = producto;
   }
-async agregarProducto() {
-  if (!this.productoSeleccionado) {
-    alert('Seleccione un producto');
-    return;
-  }
-  if (this.cantidadSeleccionada <= 0) {
-    alert('Cantidad debe ser mayor a 0');
-    return;
-  }
-  if (this.tipoProductoSeleccionado === 'consumo') {
-    try {
-      // Guardar inmediatamente en BD
-      const nuevo = await this.ejecucionService.addProducto(
-        this.ejecucionId!,
-        this.productoSeleccionado.id,
-        this.cantidadSeleccionada,
-        this.detalleProducto,
-        this.motivoProducto
-      );
-      // Agregar al array local con el ID devuelto
-      this.productosConsumidos.push({
-        id: nuevo.id,
-        producto_id: nuevo.producto_id,
-        nombre: this.productoSeleccionado.nombre,
-        cantidad: nuevo.cantidad,
-        detalle: nuevo.detalle || '',
-        motivo: nuevo.motivo || ''
-      });
-      // Reset campos
-      this.detalleProducto = '';
-      this.motivoProducto = '';
-      this.mostrarBuscadorProducto = false;
-      this.productoSeleccionado = null;
-      this.cantidadSeleccionada = 1;
-      this.indiceEdicion = null;
-    } catch (error) {
-      console.error('Error guardando producto:', error);
-      alert('Error al guardar el producto');
+  async agregarProducto() {
+    if (!this.productoSeleccionado) {
+      alert('Seleccione un producto');
+      return;
     }
-  } else {
-    this.productoSeleccionadoTemp = this.productoSeleccionado;
-    this.mostrarBuscadorProducto = false;
-    this.abrirSeleccionNodoOriginal();
+    if (this.cantidadSeleccionada <= 0) {
+      alert('Cantidad debe ser mayor a 0');
+      return;
+    }
+    if (this.tipoProductoSeleccionado === 'consumo') {
+      try {
+        // Guardar inmediatamente en BD
+        const nuevo = await this.ejecucionService.addProducto(
+          this.ejecucionId!,
+          this.productoSeleccionado.id,
+          this.cantidadSeleccionada,
+          this.detalleProducto,
+          this.motivoProducto
+        );
+        // Agregar al array local con el ID devuelto
+        this.productosConsumidos.push({
+          id: nuevo.id,
+          producto_id: nuevo.producto_id,
+          nombre: this.productoSeleccionado.nombre,
+          cantidad: nuevo.cantidad,
+          detalle: nuevo.detalle || '',
+          motivo: nuevo.motivo || ''
+        });
+        // Reset campos
+        this.detalleProducto = '';
+        this.motivoProducto = '';
+        this.mostrarBuscadorProducto = false;
+        this.productoSeleccionado = null;
+        this.cantidadSeleccionada = 1;
+        this.indiceEdicion = null;
+      } catch (error) {
+        console.error('Error guardando producto:', error);
+        alert('Error al guardar el producto');
+      }
+    } else {
+      this.productoSeleccionadoTemp = this.productoSeleccionado;
+      this.mostrarBuscadorProducto = false;
+      this.abrirSeleccionNodoOriginal();
+    }
   }
-}
- 
+
 
   // ==================== GESTIÓN DE REEMPLAZOS ====================
   productoSeleccionadoTemp: Producto | null = null;
   reemplazoEnEdicion: any = null;
 
-abrirSeleccionNodoOriginal() {
-  this.nodoDestacadoId = this.ordenSeleccionada?.nodo_id ?? null; // guarda el ID del nodo de la orden
-  this.mostrarBuscadorNodoOriginal = true;
-  this.nodoOriginalSeleccionado = null;
-}
+  abrirSeleccionNodoOriginal() {
+    this.nodoDestacadoId = this.ordenSeleccionada?.nodo_id ?? null; // guarda el ID del nodo de la orden
+    this.mostrarBuscadorNodoOriginal = true;
+    this.nodoOriginalSeleccionado = null;
+  }
   cerrarBuscadorNodoOriginal() {
-  this.mostrarBuscadorNodoOriginal = false;
-  this.nodoOriginalSeleccionado = null;
-  this.nodoDestacadoId = null; // limpia el resaltado
-}
+    this.mostrarBuscadorNodoOriginal = false;
+    this.nodoOriginalSeleccionado = null;
+    this.nodoDestacadoId = null; // limpia el resaltado
+  }
   async seleccionarNodoOriginal(nodo: Nodo) {
     if (!nodo.es_equipo) {
       alert('Debe seleccionar un equipo o componente');
@@ -701,53 +736,53 @@ abrirSeleccionNodoOriginal() {
     this.abrirSeleccionNodoOriginal(); // modificar según necesidad
   }
 
-async eliminarReemplazo(index: number) {
-  const reemp = this.reemplazos[index];
-  if (reemp.id) {
-    try {
-      await this.ejecucionService.removeReemplazo(reemp.id);
+  async eliminarReemplazo(index: number) {
+    const reemp = this.reemplazos[index];
+    if (reemp.id) {
+      try {
+        await this.ejecucionService.removeReemplazo(reemp.id);
+        this.reemplazos.splice(index, 1);
+      } catch (error) {
+        console.error('Error eliminando reemplazo:', error);
+        alert('Error al eliminar reemplazo');
+      }
+    } else {
       this.reemplazos.splice(index, 1);
-    } catch (error) {
-      console.error('Error eliminando reemplazo:', error);
-      alert('Error al eliminar reemplazo');
     }
-  } else {
-    this.reemplazos.splice(index, 1);
   }
-}
   // ==================== FINALIZAR EJECUCIÓN ====================
-async finalizarEjecucion() {
-  if (!this.ordenSeleccionada || !this.ejecucionId) {
-    alert('No hay una ejecución en curso');
-    return;
-  }
-
-  try {
-    // Los productos ya se guardaron individualmente, los reemplazos se guardan ahora
-    await this.ejecucionService.finalizarEjecucion(
-      this.ejecucionId,
-      this.observacionesGenerales,
-      this.accionesRealizadas,
-      [],                       // tareas ya guardadas individualmente
-      [],                       // productos ya guardados individualmente
-      this.reemplazos           // reemplazos pendientes se guardan aquí
-    );
-
-    // Actualizar stock (descuento)
-    await this.actualizarStockProductos(this.productosConsumidos);
-    await this.actualizarStockPorReemplazos(this.reemplazos);
-    for (const reemplazo of this.reemplazos) {
-      await this.nodosService.desactivarNodo(reemplazo.nodo_original_id);
+  async finalizarEjecucion() {
+    if (!this.ordenSeleccionada || !this.ejecucionId) {
+      alert('No hay una ejecución en curso');
+      return;
     }
 
-    alert('Ejecución finalizada correctamente');
-    this.cerrarModalEjecucion();
-    await this.cargarOrdenes();
-  } catch (error) {
-    console.error('Error finalizando ejecución:', error);
-    alert('Error al finalizar la ejecución');
+    try {
+      // Los productos ya se guardaron individualmente, los reemplazos se guardan ahora
+      await this.ejecucionService.finalizarEjecucion(
+        this.ejecucionId,
+        this.observacionesGenerales,
+        this.accionesRealizadas,
+        [],                       // tareas ya guardadas individualmente
+        [],                       // productos ya guardados individualmente
+        this.reemplazos           // reemplazos pendientes se guardan aquí
+      );
+
+      // Actualizar stock (descuento)
+      await this.actualizarStockProductos(this.productosConsumidos);
+      await this.actualizarStockPorReemplazos(this.reemplazos);
+      for (const reemplazo of this.reemplazos) {
+        await this.nodosService.desactivarNodo(reemplazo.nodo_original_id);
+      }
+
+      alert('Ejecución finalizada correctamente');
+      this.cerrarModalEjecucion();
+      await this.cargarOrdenes();
+    } catch (error) {
+      console.error('Error finalizando ejecución:', error);
+      alert('Error al finalizar la ejecución');
+    }
   }
-}
   private async actualizarStockProductos(productos: any[]) {
     for (const p of productos) {
       // Obtener producto actual para saber si es seriado o no
@@ -787,7 +822,7 @@ async finalizarEjecucion() {
     switch (estado) {
       case 'pendiente': return 'estado-pendiente';
       case 'en_proceso': return 'estado-proceso';
-      case 'completada': return 'estado-completada';
+      case 'solucionada': return 'estado-solucionada';
       default: return 'estado-default';
     }
   }

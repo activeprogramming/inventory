@@ -9,7 +9,8 @@
       <p class="subtitulo">Administre las órdenes correctivas y preventivas</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-primary" (click)="abrirModalCrear()">
+      <button *ngIf="tienePrivilegio('ordenes.Editar')" class="btn btn-primary"
+        (click)="abrirModalCrear()">
         <span class="icono-btn">➕</span> Nueva Orden Preventiva
       </button>
     </div>
@@ -36,44 +37,48 @@
   </div>
 
   <!-- Filtros -->
-<section class="filtros-section">
-  <div class="filtros-header">
-    <h2 class="titulo-seccion">🔍 Filtros de búsqueda</h2>
-  </div>
-  <div class="filtros-grid">
-    <div class="filtro-item">
-      <label>Búsqueda</label>
-      <input type="text" [(ngModel)]="filtros.search"
-             placeholder="Buscar por descripción, código..."
-             (keyup.enter)="aplicarFiltros()">
+  <section class="filtros-section">
+    <div class="filtros-header">
+      <h2 class="titulo-seccion">🔍 Filtros de búsqueda</h2>
     </div>
-    <div class="filtro-item">
-      <label>Estado</label>
-      <select [(ngModel)]="filtros.estado" (change)="aplicarFiltros()">
-        <option value="">Todos</option>
-        <option *ngFor="let e of estadosDisponibles" [value]="e.value">{{ e.label }}</option>
-      </select>
+    <div class="filtros-grid">
+      <div class="filtro-item">
+        <label>Búsqueda</label>
+        <input type="text" [(ngModel)]="filtros.search"
+          placeholder="Buscar por descripción, código..."
+          (keyup.enter)="aplicarFiltros()">
+      </div>
+      <div class="filtro-item">
+        <label>Estado</label>
+        <select [(ngModel)]="filtros.estado" (change)="aplicarFiltros()">
+          <option value>Todos</option>
+          <option *ngFor="let e of estadosDisponibles" [value]="e.value">{{
+            e.label }}</option>
+        </select>
+      </div>
+      <div class="filtro-item">
+        <label>Tipo</label>
+        <select [(ngModel)]="filtros.tipo" (change)="aplicarFiltros()">
+          <option value>Todos</option>
+          <option *ngFor="let t of tiposDisponibles" [value]="t.value">{{
+            t.label }}</option>
+        </select>
+      </div>
+      <div class="filtro-item">
+        <label>Desde</label>
+        <input type="date" [(ngModel)]="filtros.fecha_desde"
+          (change)="aplicarFiltros()">
+      </div>
+      <div class="filtro-item">
+        <label>Hasta</label>
+        <input type="date" [(ngModel)]="filtros.fecha_hasta"
+          (change)="aplicarFiltros()">
+      </div>
     </div>
-    <div class="filtro-item">
-      <label>Tipo</label>
-      <select [(ngModel)]="filtros.tipo" (change)="aplicarFiltros()">
-        <option value="">Todos</option>
-        <option *ngFor="let t of tiposDisponibles" [value]="t.value">{{ t.label }}</option>
-      </select>
-    </div> 
-    <div class="filtro-item">
-      <label>Desde</label>
-      <input type="date" [(ngModel)]="filtros.fecha_desde" (change)="aplicarFiltros()">
+    <div class="filtros-actions">
+      <button class="btn btn-clear" (click)="limpiarFiltros()">Limpiar</button>
     </div>
-    <div class="filtro-item">
-      <label>Hasta</label>
-      <input type="date" [(ngModel)]="filtros.fecha_hasta" (change)="aplicarFiltros()">
-    </div>
-  </div>
-  <div class="filtros-actions">
-    <button class="btn btn-clear" (click)="limpiarFiltros()">Limpiar</button>
-  </div>
-</section>
+  </section>
   <!-- Tabla de órdenes -->
   <section class="tabla-section">
     <div class="tabla-header">
@@ -85,7 +90,7 @@
       <table class="ordenes-tabla">
         <thead>
           <tr>
-            <th>ID</th>
+            <th>Numeración</th>
             <th>Código</th>
             <th>Nodo</th>
             <th>Tipo</th>
@@ -97,8 +102,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let ord of ordenes" class="registro-fila">
-            <td class="col-id">{{ ord.id }}</td>
+          <tr *ngFor="let ord of ordenes; let i = index" class="registro-fila">
+            <td class="col-numero">
+              {{ totalRegistros - ((filtros.page - 1) * filtros.limit + i) }}
+            </td>
             <td class="col-codigo">{{ ord.id }}</td>
             <td class="col-nodo">{{ ord.nodo_nombre }} ({{ ord.nodo_tipo
               }})</td>
@@ -381,7 +388,8 @@
         <div *ngFor="let tarea of tareasDeOrden" class="tarea-item">
           <div><strong>Tarea nombre:{{ tarea.nombre }}</strong></div>
           <div *ngIf="tarea.detalles">Detalles:{{ tarea.detalles }}</div>
-          <div *ngIf="tarea.descripcion">Descripcion:{{ tarea.descripcion }}</div>
+          <div *ngIf="tarea.descripcion">Descripcion:{{ tarea.descripcion
+            }}</div>
           <div *ngIf="tarea.intervalo_ejecucion_meses">Intervalo: cada {{
             tarea.intervalo_ejecucion_meses }} mes(es)</div>
           <div *ngIf="tarea.duracion_estimada_minutos">Duración estimada: {{
@@ -426,6 +434,11 @@
         </div>
         <div class="form-group">
           <label>Técnico asignado</label>
+          <div *ngIf="mostrarMensajeAutoAsignacion"
+            class="mensaje-autoasignacion">
+            ⚡ Se acaba de asignar a <strong>{{ userName || 'Usuario' }}</strong> automaticamente a
+            esta orden. Guarde para confirmar.
+          </div>
           <input type="text" [(ngModel)]="editarOrden.tecnico_asignado"
             name="tecnico_asignado">
         </div>

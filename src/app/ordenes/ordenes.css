@@ -581,4 +581,11 @@
   font-style: italic;
   color: #64748b;
   margin-top: 12px;
+}.mensaje-autoasignacion {
+  background-color: #e3f2fd;
+  border-left: 4px solid #2196f3;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  border-radius: 4px;
 }

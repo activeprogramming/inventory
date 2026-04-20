@@ -9,7 +9,7 @@
       <p class="subtitulo">Administre las tareas de mantenimiento preventivo</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-primary" (click)="abrirModalCrear()">
+      <button *ngIf="tienePrivilegio('tareas.Editar')"  class="btn btn-primary" (click)="abrirModalCrear()">
         <span class="icono-btn">➕</span> Nueva Tarea
       </button>
     </div>
